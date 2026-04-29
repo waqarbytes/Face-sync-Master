@@ -21,7 +21,13 @@ import { useZen } from "@/context/ZenContext";
 
 export default function LiveMirror() {
   const [, setLocation] = useLocation();
-  const { data: baseline, isLoading: baselineLoading } = useGetBaseline();
+  const { data: baselineData, isLoading: baselineLoading } = useGetBaseline();
+  const baseline = baselineData || {
+    earOpen: 0.32,
+    marClosed: 0.05,
+    neutralPitch: 0,
+    neutralYaw: 0,
+  };
   const { data: profiles } = useListProfiles();
   const { zenState, setZenState, showIntervention } = useZen();
 
@@ -302,22 +308,8 @@ export default function LiveMirror() {
     );
   }
 
-  if (!baseline) {
-    return (
-      <div className="max-w-2xl mx-auto py-12">
-        <Alert variant="destructive" className="mb-6 rounded-2xl border-destructive/20 bg-destructive/5 backdrop-blur-sm">
-          <AlertCircle className="h-5 w-5" />
-          <AlertTitle className="font-heading font-bold text-lg">Initial Setup Required</AlertTitle>
-          <AlertDescription className="text-sm opacity-90 mt-1">
-            Please establish your wellness baseline so we can accurately calibrate your posture and biometric feedback.
-          </AlertDescription>
-        </Alert>
-        <Button onClick={() => setLocation("/baseline")} size="lg" className="w-full rounded-2xl font-heading font-bold h-14 shadow-lg shadow-primary/20">
-          Calibrate Baseline
-        </Button>
-      </div>
-    );
-  }
+  // Removed full-screen baseline blocker to ensure mirror always shows.
+  // Warning is now shown inside the main UI instead.
 
   return (
     <div className="mx-auto max-w-5xl space-y-6 pb-6">
@@ -328,6 +320,16 @@ export default function LiveMirror() {
             <Zap className="w-4 h-4 text-primary" /> Real-time wellness monitoring
           </p>
         </div>
+
+        {!baselineData && !baselineLoading && (
+          <div className="flex-1 max-w-sm px-4 py-2 bg-amber-500/10 border border-amber-500/20 rounded-2xl flex items-center gap-3">
+             <AlertCircle className="w-4 h-4 text-amber-500 shrink-0" />
+             <p className="text-[10px] font-bold text-amber-600/80 uppercase tracking-tight leading-tight">
+               Calibration Missing. Using default profile for now.
+               <Link href="/baseline" className="ml-2 underline hover:text-amber-700">Setup Now</Link>
+             </p>
+          </div>
+        )}
         
         <div className="flex items-center gap-3">
           {!activeSessionId && (
