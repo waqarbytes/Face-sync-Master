@@ -1,5 +1,5 @@
 [build]
-  command = "pnpm build"
+  command = "pnpm -r --if-present run build"
   publish = "artifacts/facesync/dist/public"
 
 [build.environment]
