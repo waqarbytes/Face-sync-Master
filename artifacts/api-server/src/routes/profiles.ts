@@ -29,16 +29,37 @@ router.get("/profiles", async (_req, res) => {
 });
 
 router.post("/profiles", async (req, res) => {
-  const body = CreateProfileBody.parse(req.body);
-  const [row] = await db
-    .insert(profilesTable)
-    .values({
-      name: body.name,
-      descriptor: body.descriptor,
-      sampleCount: body.sampleCount,
-    })
-    .returning();
-  res.status(201).json(row);
+  try {
+    const body = CreateProfileBody.parse(req.body);
+    
+    // Add a small retry loop for cloud database cold starts
+    let lastError;
+    for (let i = 0; i < 3; i++) {
+      try {
+        const [row] = await db
+          .insert(profilesTable)
+          .values({
+            name: body.name,
+            descriptor: body.descriptor,
+            sampleCount: body.sampleCount,
+          })
+          .returning();
+        return res.status(201).json(row);
+      } catch (e) {
+        lastError = e;
+        console.warn(`Database insert attempt ${i + 1} failed, retrying...`);
+        await new Promise(resolve => setTimeout(resolve, 500));
+      }
+    }
+    throw lastError;
+  } catch (error: any) {
+    console.error("POST /profiles Error:", error);
+    res.status(502).json({ 
+      error: "Cloud sync failed", 
+      details: error.message,
+      hint: "Ensure DATABASE_URL is set in Netlify environment variables."
+    });
+  }
 });
 
 // New endpoint for backend-based training (Python)
