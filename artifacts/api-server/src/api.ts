@@ -1,16 +1,13 @@
+import dotenv from "dotenv";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import dotenv from "dotenv";
 
-// Load from local folder first, then root
+// ABSOLUTE FIRST STEP: Load environment variables
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 dotenv.config({ path: path.join(__dirname, "../.env") });
 dotenv.config({ path: path.join(__dirname, "../../../.env") });
 
-console.log("🔍 API STARTUP: DATABASE_URL is", process.env.DATABASE_URL ? "LOADED ✅" : "MISSING ❌");
-if (process.env.DATABASE_URL) {
-  console.log("🔗 Connecting to:", process.env.DATABASE_URL.split('@')[1]);
-}
+console.log("🚀 BOOTSTRAP: DATABASE_URL is", process.env.DATABASE_URL ? "DETECTED ✅" : "MISSING ❌");
 
 import app from "./app";
 import { logger } from "./lib/logger";
