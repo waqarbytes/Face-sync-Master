@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from "react";
+import { useLocation } from "wouter";
 import { useGetBaseline, useUpdateBaseline, getGetBaselineQueryKey } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
@@ -11,6 +12,7 @@ import { motion, AnimatePresence } from "framer-motion";
 
 export default function Baseline() {
   const queryClient = useQueryClient();
+  const [, setLocation] = useLocation();
   const { data: baseline, isLoading } = useGetBaseline();
   const updateMutation = useUpdateBaseline();
 
@@ -84,7 +86,7 @@ export default function Baseline() {
                 // Redirect back to mirror after 2 seconds
                 setTimeout(() => {
                   setSuccess(false);
-                  window.location.href = "/";
+                  setLocation("/");
                 }, 2000);
               },
               onError: () => {
