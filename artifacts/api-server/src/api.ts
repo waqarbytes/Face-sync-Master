@@ -7,6 +7,11 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 dotenv.config({ path: path.join(__dirname, "../.env") });
 dotenv.config({ path: path.join(__dirname, "../../../.env") });
 
+console.log("🔍 API STARTUP: DATABASE_URL is", process.env.DATABASE_URL ? "LOADED ✅" : "MISSING ❌");
+if (process.env.DATABASE_URL) {
+  console.log("🔗 Connecting to:", process.env.DATABASE_URL.split('@')[1]);
+}
+
 import app from "./app";
 import { logger } from "./lib/logger";
 
