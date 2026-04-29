@@ -17,5 +17,6 @@
   status = 200
 
 [functions]
-  directory = "artifacts/api-server/src"
-  node_bundler = "esbuild"
+  directory = "artifacts/api-server/dist"
+  node_version = "20"
+  external_node_modules = ["pg", "pg-native"]
