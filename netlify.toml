@@ -6,6 +6,11 @@
   NODE_VERSION = "20"
   PNPM_FLAGS = "--shamefully-hoist"
 
+[functions]
+  directory = "artifacts/api-server/dist"
+  node_bundler = "esbuild"
+  external_node_modules = ["pg", "pg-native"]
+
 [[redirects]]
   from = "/api/*"
   to = "/.netlify/functions/api/:splat"
@@ -15,8 +20,3 @@
   from = "/*"
   to = "/index.html"
   status = 200
-
-[functions]
-  directory = "artifacts/api-server/dist"
-  node_version = "20"
-  external_node_modules = ["pg", "pg-native"]
