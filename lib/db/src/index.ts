@@ -18,9 +18,16 @@ const pool = new pg.Pool({
   idleTimeoutMillis: 30000,
 });
 
-// Self-healing: Pre-warm the connection to avoid 502
+// Self-healing: Pre-warm the connection to avoid 502/500
 pool.on("connect", () => {
-  console.log("Cloud Database: Secure bridge established.");
+  console.log("✅ Cloud Database: Secure bridge established.");
+});
+
+pool.on("error", (err) => {
+  console.error("❌ Database Connection Error:", err.message);
+  if (err.message.includes("password authentication failed")) {
+    console.error("HINT: Your DATABASE_URL password might be incorrect.");
+  }
 });
 
 export const db = drizzle(pool, { schema });
