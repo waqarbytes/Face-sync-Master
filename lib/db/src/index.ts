@@ -10,16 +10,19 @@ if (!connectionString) {
 
 const pool = new pg.Pool({
   connectionString,
+  ssl: {
+    rejectUnauthorized: false, // Required for Supabase cloud connections
+  },
+  max: 1, // Keep it lean for serverless
+  connectionTimeoutMillis: 5000,
+  idleTimeoutMillis: 30000,
 });
 
 pool.on("error", (err) => {
   console.error("Unexpected error on idle client", err);
 });
 
-// Test connection
-pool.connect()
-  .then(() => console.log("Successfully connected to Supabase PostgreSQL"))
-  .catch((err) => console.error("Failed to connect to Supabase PostgreSQL:", err));
+// We remove the blocking test-connect here to speed up serverless start
 
 export const db = drizzle(pool, { schema });
 
