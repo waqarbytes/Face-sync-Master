@@ -1,0 +1,21 @@
+[build]
+  command = "pnpm build"
+  publish = "artifacts/facesync/dist/public"
+
+[build.environment]
+  NODE_VERSION = "20"
+  PNPM_FLAGS = "--shamefully-hoist"
+
+[[redirects]]
+  from = "/api/*"
+  to = "/.netlify/functions/api/:splat"
+  status = 200
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
+[functions]
+  directory = "artifacts/api-server/src"
+  node_bundler = "esbuild"

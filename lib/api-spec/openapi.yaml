@@ -1,0 +1,480 @@
+openapi: 3.1.0
+info:
+  # Do not change the title, if the title changes, the import paths will be broken
+  title: Api
+  version: 0.1.0
+  description: FaceSync API - face wellness mirror
+servers:
+  - url: /api
+    description: Base API path
+tags:
+  - name: health
+    description: Health operations
+  - name: sessions
+    description: Wellness sessions
+  - name: readings
+    description: Per-frame face readings
+  - name: baseline
+    description: Personal baselines
+  - name: insights
+    description: Aggregated wellness insights
+  - name: profiles
+    description: Face identity enrollment and recognition
+paths:
+  /healthz:
+    get:
+      operationId: healthCheck
+      tags: [health]
+      summary: Health check
+      responses:
+        "200":
+          description: Healthy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthStatus"
+
+  /sessions:
+    get:
+      operationId: listSessions
+      tags: [sessions]
+      summary: List recent wellness sessions
+      parameters:
+        - in: query
+          name: limit
+          schema: { type: integer, minimum: 1, maximum: 100, default: 20 }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/Session" }
+    post:
+      operationId: createSession
+      tags: [sessions]
+      summary: Start a new wellness session
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CreateSessionBody" }
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Session" }
+
+  /sessions/{id}:
+    get:
+      operationId: getSession
+      tags: [sessions]
+      summary: Get a session with summary stats
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SessionDetail" }
+        "404":
+          description: Not found
+    patch:
+      operationId: endSession
+      tags: [sessions]
+      summary: End a session and persist its summary
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/EndSessionBody" }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Session" }
+
+  /sessions/{id}/readings:
+    get:
+      operationId: listReadings
+      tags: [readings]
+      summary: List readings for a session
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+        - in: query
+          name: limit
+          schema: { type: integer, minimum: 1, maximum: 5000, default: 1000 }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/Reading" }
+    post:
+      operationId: appendReadings
+      tags: [readings]
+      summary: Append a batch of readings to a session
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/AppendReadingsBody" }
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AppendReadingsResponse" }
+
+  /baseline:
+    get:
+      operationId: getBaseline
+      tags: [baseline]
+      summary: Get the current personal baseline
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Baseline" }
+    put:
+      operationId: updateBaseline
+      tags: [baseline]
+      summary: Update the personal baseline
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/UpdateBaselineBody" }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Baseline" }
+
+  /insights/summary:
+    get:
+      operationId: getInsightsSummary
+      tags: [insights]
+      summary: Aggregated headline metrics for the dashboard
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/InsightsSummary" }
+
+  /insights/trend:
+    get:
+      operationId: getWellnessTrend
+      tags: [insights]
+      summary: Daily wellness score trend
+      parameters:
+        - in: query
+          name: days
+          schema: { type: integer, minimum: 1, maximum: 90, default: 14 }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/TrendPoint" }
+
+  /insights/posture-breakdown:
+    get:
+      operationId: getPostureBreakdown
+      tags: [insights]
+      summary: Posture distribution across recent sessions
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/PostureSlice" }
+
+  /profiles:
+    get:
+      operationId: listProfiles
+      tags: [profiles]
+      summary: List enrolled face profiles
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/Profile" }
+    post:
+      operationId: createProfile
+      tags: [profiles]
+      summary: Enroll a new face profile
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CreateProfileBody" }
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Profile" }
+
+  /profiles/{id}:
+    delete:
+      operationId: deleteProfile
+      tags: [profiles]
+      summary: Delete a face profile
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        "204":
+          description: Deleted
+
+  /insights/emotion-breakdown:
+    get:
+      operationId: getEmotionBreakdown
+      tags: [insights]
+      summary: Emotion distribution across recent sessions
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/EmotionSlice" }
+
+components:
+  schemas:
+    HealthStatus:
+      type: object
+      properties:
+        status: { type: string }
+      required: [status]
+
+    PostureState:
+      type: string
+      enum: [upright, slouch, forward_head, tilted, unknown]
+
+    Emotion:
+      type: string
+      enum: [neutral, happy, sad, surprised, focused, tired, unknown]
+
+    Session:
+      type: object
+      properties:
+        id: { type: integer }
+        profileId: { type: integer, nullable: true }
+        profileName: { type: string, nullable: true }
+        label: { type: string, nullable: true }
+        startedAt: { type: string, format: date-time }
+        endedAt: { type: string, format: date-time, nullable: true }
+        durationSec: { type: integer, nullable: true }
+        wellnessScore: { type: number, nullable: true }
+        avgEar: { type: number, nullable: true }
+        avgMar: { type: number, nullable: true }
+        avgPosturePenalty: { type: number, nullable: true }
+        dominantEmotion:
+          allOf:
+            - $ref: "#/components/schemas/Emotion"
+          nullable: true
+        readingCount: { type: integer }
+      required: [id, startedAt, readingCount]
+
+    SessionDetail:
+      allOf:
+        - $ref: "#/components/schemas/Session"
+        - type: object
+          properties:
+            postureBreakdown:
+              type: array
+              items: { $ref: "#/components/schemas/PostureSlice" }
+            emotionBreakdown:
+              type: array
+              items: { $ref: "#/components/schemas/EmotionSlice" }
+          required: [postureBreakdown, emotionBreakdown]
+
+    CreateSessionBody:
+      type: object
+      properties:
+        label: { type: string, nullable: true }
+        profileId: { type: integer, nullable: true }
+
+    EndSessionBody:
+      type: object
+      properties:
+        wellnessScore: { type: number }
+        avgEar: { type: number }
+        avgMar: { type: number }
+        avgPosturePenalty: { type: number }
+        dominantEmotion: { $ref: "#/components/schemas/Emotion" }
+        durationSec: { type: integer }
+        neutralPitch: { type: number, nullable: true }
+        neutralYaw: { type: number, nullable: true }
+        profileId: { type: integer, nullable: true }
+      required: [wellnessScore, avgEar, avgMar, avgPosturePenalty, dominantEmotion, durationSec]
+
+    Reading:
+      type: object
+      properties:
+        id: { type: integer }
+        sessionId: { type: integer }
+        capturedAt: { type: string, format: date-time }
+        ear: { type: number, description: "Eye Aspect Ratio" }
+        mar: { type: number, description: "Mouth Aspect Ratio" }
+        yaw: { type: number }
+        pitch: { type: number }
+        roll: { type: number }
+        posture: { $ref: "#/components/schemas/PostureState" }
+        emotion: { $ref: "#/components/schemas/Emotion" }
+        emotionConfidence: { type: number }
+        wellnessScore: { type: number }
+      required: [id, sessionId, capturedAt, ear, mar, yaw, pitch, roll, posture, emotion, emotionConfidence, wellnessScore]
+
+    NewReading:
+      type: object
+      properties:
+        capturedAt: { type: string, format: date-time }
+        ear: { type: number }
+        mar: { type: number }
+        yaw: { type: number }
+        pitch: { type: number }
+        roll: { type: number }
+        posture: { $ref: "#/components/schemas/PostureState" }
+        emotion: { $ref: "#/components/schemas/Emotion" }
+        emotionConfidence: { type: number }
+        wellnessScore: { type: number }
+      required: [capturedAt, ear, mar, yaw, pitch, roll, posture, emotion, emotionConfidence, wellnessScore]
+
+    AppendReadingsBody:
+      type: object
+      properties:
+        readings:
+          type: array
+          items: { $ref: "#/components/schemas/NewReading" }
+      required: [readings]
+
+    AppendReadingsResponse:
+      type: object
+      properties:
+        inserted: { type: integer }
+      required: [inserted]
+
+    Baseline:
+      type: object
+      properties:
+        earOpen: { type: number, description: "Baseline EAR when eyes are open and rested" }
+        marClosed: { type: number, description: "Baseline MAR when mouth is closed" }
+        neutralPitch: { type: number }
+        neutralYaw: { type: number }
+        updatedAt: { type: string, format: date-time }
+      required: [earOpen, marClosed, neutralPitch, neutralYaw, updatedAt]
+
+    UpdateBaselineBody:
+      type: object
+      properties:
+        earOpen: { type: number }
+        marClosed: { type: number }
+        neutralPitch: { type: number }
+        neutralYaw: { type: number }
+      required: [earOpen, marClosed, neutralPitch, neutralYaw]
+
+    InsightsSummary:
+      type: object
+      properties:
+        totalSessions: { type: integer }
+        totalMinutes: { type: number }
+        avgWellnessScore: { type: number, nullable: true }
+        bestWellnessScore: { type: number, nullable: true }
+        currentStreakDays: { type: integer }
+        lastSessionAt: { type: string, format: date-time, nullable: true }
+      required: [totalSessions, totalMinutes, currentStreakDays]
+
+    TrendPoint:
+      type: object
+      properties:
+        date: { type: string, format: date }
+        avgWellnessScore: { type: number, nullable: true }
+        sessionCount: { type: integer }
+      required: [date, sessionCount]
+
+    PostureSlice:
+      type: object
+      properties:
+        posture: { $ref: "#/components/schemas/PostureState" }
+        count: { type: integer }
+        ratio: { type: number }
+      required: [posture, count, ratio]
+
+    Profile:
+      type: object
+      properties:
+        id: { type: integer }
+        name: { type: string }
+        descriptor:
+          type: array
+          items: { type: number }
+          description: "128-d face descriptor"
+        sampleCount: { type: integer }
+        earOpen: { type: number, nullable: true }
+        marClosed: { type: number, nullable: true }
+        neutralPitch: { type: number, nullable: true }
+        neutralYaw: { type: number, nullable: true }
+        voiceDescriptor:
+          type: array
+          items: { type: number }
+          nullable: true
+        createdAt: { type: string, format: date-time }
+      required: [id, name, descriptor, sampleCount, createdAt]
+
+    CreateProfileBody:
+      type: object
+      properties:
+        name: { type: string, minLength: 1, maxLength: 80 }
+        descriptor:
+          type: array
+          items: { type: number }
+          minItems: 128
+          maxItems: 128
+        sampleCount: { type: integer, minimum: 1 }
+      required: [name, descriptor, sampleCount]
+
+    EmotionSlice:
+      type: object
+      properties:
+        emotion: { $ref: "#/components/schemas/Emotion" }
+        count: { type: integer }
+        ratio: { type: number }
+      required: [emotion, count, ratio]
