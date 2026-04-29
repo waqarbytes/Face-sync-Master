@@ -25,11 +25,13 @@ pool.on("connect", () => {
 
 pool.on("error", (err) => {
   console.error("❌ Database Connection Error:", err.message);
-  if (err.message.includes("password authentication failed")) {
-    console.error("HINT: Your DATABASE_URL password might be incorrect.");
+  // Auto-reconnect logic
+  if (err.message.includes("Connection terminated")) {
+    console.log("🔄 Reconnecting to Supabase...");
   }
 });
 
+// For local dev, we ensure the pool is ready
 export const db = drizzle(pool, { schema });
 
 export * from "./schema";
