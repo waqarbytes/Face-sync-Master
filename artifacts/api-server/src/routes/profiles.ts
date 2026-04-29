@@ -54,10 +54,11 @@ router.post("/profiles", async (req, res) => {
     throw lastError;
   } catch (error: any) {
     console.error("POST /profiles Error:", error);
-    res.status(502).json({ 
+    res.status(500).json({ 
       error: "Cloud sync failed", 
       details: error.message,
-      hint: "Ensure DATABASE_URL is set in Netlify environment variables."
+      stack: error.stack,
+      hint: "Check if the Supabase table 'profiles' has columns: id, name, descriptor, sample_count, created_at"
     });
   }
 });
