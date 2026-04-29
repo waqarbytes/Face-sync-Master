@@ -7,7 +7,10 @@
     "build": "pnpm run typecheck && pnpm -r --if-present run build",
     "typecheck:libs": "tsc --build",
     "typecheck": "pnpm run typecheck:libs && pnpm -r --filter \"./artifacts/**\" --filter \"./scripts\" --if-present run typecheck",
-    "ai:dev": "cd artifacts/ai-service && ./run.sh"
+    "ai:dev": "cd artifacts/ai-service && ./run.sh",
+    "api:dev": "export PORT=5001 && pnpm --filter @workspace/api-server run dev",
+    "ui:dev": "export PORT=3000 && pnpm --filter @workspace/facesync run dev",
+    "dev": "pnpm run api:dev & pnpm run ui:dev & pnpm run ai:dev"
   },
   "private": true,
   "devDependencies": {
@@ -17,6 +20,9 @@
     "typescript": "~5.9.2"
   },
   "dependencies": {
-    "motion-dom": "^12.38.0"
+    "@types/pg": "^8.18.0",
+    "drizzle-orm": "catalog:",
+    "motion-dom": "^12.38.0",
+    "pg": "^8.20.0"
   }
 }
