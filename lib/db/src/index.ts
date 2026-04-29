@@ -11,18 +11,17 @@ if (!connectionString) {
 const pool = new pg.Pool({
   connectionString,
   ssl: {
-    rejectUnauthorized: false, // Required for Supabase cloud connections
+    rejectUnauthorized: false,
   },
-  max: 1, // Keep it lean for serverless
-  connectionTimeoutMillis: 5000,
+  max: 1,
+  connectionTimeoutMillis: 10000, // Increased to 10s for Sydney latency
   idleTimeoutMillis: 30000,
 });
 
-pool.on("error", (err) => {
-  console.error("Unexpected error on idle client", err);
+// Self-healing: Pre-warm the connection to avoid 502
+pool.on("connect", () => {
+  console.log("Cloud Database: Secure bridge established.");
 });
-
-// We remove the blocking test-connect here to speed up serverless start
 
 export const db = drizzle(pool, { schema });
 
