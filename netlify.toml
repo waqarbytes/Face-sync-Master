@@ -8,7 +8,7 @@
 
 [functions]
   directory = "artifacts/api-server/dist"
-  node_bundler = "none"
+  node_bundler = "nft"
 
 [[redirects]]
   from = "/api/*"
