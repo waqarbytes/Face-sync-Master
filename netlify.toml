@@ -8,8 +8,7 @@
 
 [functions]
   directory = "artifacts/api-server/dist"
-  node_bundler = "esbuild"
-  external_node_modules = ["pg", "pg-native"]
+  node_bundler = "none"
 
 [[redirects]]
   from = "/api/*"
