@@ -162,18 +162,7 @@ router.patch("/sessions/:id", async (req, res) => {
       return;
     }
 
-    // LEARN BEHAVIOR: Update personal baseline if profile is linked
-    if (row.profileId && body.wellnessScore > 60) {
-      const [profile] = await db.select().from(profilesTable).where(eq(profilesTable.id, row.profileId));
-      if (profile) {
-        await db.update(profilesTable).set({
-          earOpen: profile.earOpen ? (profile.earOpen * 0.7 + body.avgEar * 0.3) : body.avgEar,
-          marClosed: profile.marClosed ? (profile.marClosed * 0.7 + body.avgMar * 0.3) : body.avgMar,
-          // Posture learning is more conservative
-          neutralPitch: profile.neutralPitch != null ? (profile.neutralPitch * 0.9 + (body.neutralPitch || 0) * 0.1) : body.neutralPitch,
-        }).where(eq(profilesTable.id, row.profileId));
-      }
-    }
+    // TODO: Add learning behavior once profile schema includes baseline columns (earOpen, marClosed, neutralPitch)
 
     const [{ readingCount } = { readingCount: 0 }] = await db
       .select({ readingCount: sql<number>`COUNT(*)` })
