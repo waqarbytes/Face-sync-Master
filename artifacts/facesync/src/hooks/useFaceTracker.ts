@@ -65,6 +65,11 @@ export function useFaceTracker(
     try {
       setStatus("loading");
       const landmarker = await getFaceLandmarker();
+      if (!navigator.mediaDevices?.getUserMedia) {
+        setError("Camera access requires a secure context. Please open http://localhost:3000");
+        setStatus("error");
+        return;
+      }
       const stream = await navigator.mediaDevices.getUserMedia({
         video: { facingMode: "user", width: 720, height: 540 },
         audio: false,

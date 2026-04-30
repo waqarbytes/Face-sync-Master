@@ -87,6 +87,10 @@ export default function People() {
     setEnroll({ kind: "loading" });
     try {
       await ensureRecognitionModels();
+      if (!navigator.mediaDevices?.getUserMedia) {
+        setEnroll({ kind: "error", message: "Camera access requires a secure context. Please open http://localhost:3000 instead of using an IP address." });
+        return;
+      }
       const stream = await navigator.mediaDevices.getUserMedia({
         video: { facingMode: "user", width: 640, height: 480 },
         audio: false,
