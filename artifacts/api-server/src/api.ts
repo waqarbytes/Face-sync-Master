@@ -1,36 +1,25 @@
 import dotenv from "dotenv";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import serverless from "serverless-http";
 
-// ABSOLUTE FIRST STEP: Load environment variables
+// Load environment variables before anything else
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 dotenv.config({ path: path.join(__dirname, "../.env") });
 dotenv.config({ path: path.join(__dirname, "../../../.env") });
 
-console.log("🚀 BOOTSTRAP: DATABASE_URL is", process.env.DATABASE_URL ? "DETECTED ✅" : "MISSING ❌");
-
 import app from "./app";
 import { logger } from "./lib/logger";
 
-const rawPort = process.env["PORT"];
+// ── Netlify Serverless Export ──
+// Netlify Functions look for this named export
+export const handler = serverless(app);
 
-if (!rawPort) {
-  throw new Error(
-    "PORT environment variable is required but was not provided.",
-  );
+// ── Local Development Server ──
+// Only start listening when running locally (not in serverless)
+if (!process.env.NETLIFY && !process.env.AWS_LAMBDA_FUNCTION_NAME) {
+  const port = Number(process.env.PORT || 5001);
+  app.listen(port, () => {
+    logger.info({ port }, "Server listening");
+  });
 }
-
-const port = Number(rawPort);
-
-if (Number.isNaN(port) || port <= 0) {
-  throw new Error(`Invalid PORT value: "${rawPort}"`);
-}
-
-app.listen(port, (err) => {
-  if (err) {
-    logger.error({ err }, "Error listening on port");
-    process.exit(1);
-  }
-
-  logger.info({ port }, "Server listening");
-});

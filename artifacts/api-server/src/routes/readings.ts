@@ -26,30 +26,35 @@ router.get("/sessions/:id/readings", async (req, res) => {
 });
 
 router.post("/sessions/:id/readings", async (req, res) => {
-  const { id } = AppendReadingsParams.parse(req.params);
-  const body = AppendReadingsBody.parse(req.body);
+  try {
+    const { id } = AppendReadingsParams.parse(req.params);
+    const body = AppendReadingsBody.parse(req.body);
 
-  if (body.readings.length === 0) {
-    res.status(201).json({ inserted: 0 });
-    return;
+    if (body.readings.length === 0) {
+      res.status(201).json({ inserted: 0 });
+      return;
+    }
+
+    const values = body.readings.map((r) => ({
+      sessionId: id,
+      capturedAt: new Date(r.capturedAt),
+      ear: r.ear,
+      mar: r.mar,
+      yaw: r.yaw,
+      pitch: r.pitch,
+      roll: r.roll,
+      posture: r.posture,
+      emotion: r.emotion,
+      emotionConfidence: r.emotionConfidence,
+      wellnessScore: r.wellnessScore,
+    }));
+
+    await db.insert(readingsTable).values(values);
+    res.status(201).json({ inserted: values.length });
+  } catch (error: any) {
+    console.error("Append readings error:", error?.message);
+    res.status(500).json({ error: "Failed to save readings", details: error?.message });
   }
-
-  const values = body.readings.map((r) => ({
-    sessionId: id,
-    capturedAt: new Date(r.capturedAt),
-    ear: r.ear,
-    mar: r.mar,
-    yaw: r.yaw,
-    pitch: r.pitch,
-    roll: r.roll,
-    posture: r.posture,
-    emotion: r.emotion,
-    emotionConfidence: r.emotionConfidence,
-    wellnessScore: r.wellnessScore,
-  }));
-
-  await db.insert(readingsTable).values(values);
-  res.status(201).json({ inserted: values.length });
 });
 
 export default router;

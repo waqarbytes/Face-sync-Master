@@ -139,7 +139,8 @@ router.get("/sessions/:id", async (req, res) => {
 router.patch("/sessions/:id", async (req, res) => {
   try {
     const { id } = EndSessionParams.parse(req.params);
-    const body = EndSessionBody.parse(req.body);
+    // Use passthrough() so extra fields like profileId don't cause validation errors
+    const body = EndSessionBody.passthrough().parse(req.body);
 
     const [row] = await db
       .update(sessionsTable)
@@ -151,8 +152,7 @@ router.patch("/sessions/:id", async (req, res) => {
         avgMar: body.avgMar,
         avgPosturePenalty: body.avgPosturePenalty,
         dominantEmotion: body.dominantEmotion,
-        // Update profileId if provided in the end request
-        ...(body.profileId ? { profileId: body.profileId } : {}),
+        ...((body as any).profileId ? { profileId: (body as any).profileId } : {}),
       })
       .where(eq(sessionsTable.id, id))
       .returning();
@@ -162,7 +162,7 @@ router.patch("/sessions/:id", async (req, res) => {
       return;
     }
 
-    // TODO: Add learning behavior once profile schema includes baseline columns (earOpen, marClosed, neutralPitch)
+    // TODO: Add learning behavior once profile schema includes baseline columns
 
     const [{ readingCount } = { readingCount: 0 }] = await db
       .select({ readingCount: sql<number>`COUNT(*)` })
@@ -170,9 +170,9 @@ router.patch("/sessions/:id", async (req, res) => {
       .where(eq(readingsTable.sessionId, id));
 
     res.json({ ...row, readingCount });
-  } catch (error) {
-    console.error("Update session error:", error);
-    res.status(500).json({ error: "Failed to end session" });
+  } catch (error: any) {
+    console.error("Update session error:", error?.message, error?.issues || "");
+    res.status(500).json({ error: "Failed to end session", details: error?.message });
   }
 });
 
