@@ -392,7 +392,7 @@ export default function LiveMirror() {
                 className="absolute inset-0 h-full w-full object-cover scale-x-[-1] pointer-events-none"
               />
 
-              {/* Multi-Person Overlays */}
+               {/* Multi-Person Overlays */}
               <AnimatePresence mode="popLayout">
                 {status === "ready" && allMetrics.map((m, i) => (
                   <motion.div
@@ -402,50 +402,46 @@ export default function LiveMirror() {
                     exit={{ opacity: 0, scale: 0.8 }}
                     className="absolute z-20 pointer-events-none"
                     style={{ 
-                      left: i === 0 ? '6%' : i === 1 ? 'auto' : '50%',
-                      right: i === 1 ? '6%' : 'auto',
-                      top: i === 2 ? 'auto' : '6%',
-                      bottom: i === 2 ? '6%' : 'auto',
+                      left: i === 0 ? '3%' : i === 1 ? 'auto' : '50%',
+                      right: i === 1 ? '3%' : 'auto',
+                      top: i === 2 ? 'auto' : '3%',
+                      bottom: i === 2 ? '3%' : 'auto',
                       transform: i === 2 ? 'translateX(-50%)' : 'none',
-                      width: '260px'
                     }}
                   >
-                    <div className="rounded-[2rem] bg-black/50 border border-white/20 p-5 text-white shadow-2xl backdrop-blur-3xl ring-1 ring-white/10">
-                      <div className="flex items-center justify-between mb-4">
-                        <div className="flex items-center gap-3">
-                           <div className={`w-10 h-10 rounded-2xl bg-gradient-to-br ${i === 0 ? 'from-primary to-primary/50' : 'from-blue-500 to-blue-300'} flex items-center justify-center shadow-lg shadow-black/20 relative`}>
-                             <UserCircle2 className="h-6 w-6 text-white" />
+                    <div className="rounded-2xl sm:rounded-[2rem] bg-black/50 border border-white/20 p-2.5 sm:p-5 text-white shadow-2xl backdrop-blur-3xl ring-1 ring-white/10 max-w-[180px] sm:max-w-[260px]">
+                      <div className="flex items-center justify-between mb-2 sm:mb-4">
+                        <div className="flex items-center gap-2 sm:gap-3">
+                           <div className={`w-7 h-7 sm:w-10 sm:h-10 rounded-xl sm:rounded-2xl bg-gradient-to-br ${i === 0 ? 'from-primary to-primary/50' : 'from-blue-500 to-blue-300'} flex items-center justify-center shadow-lg shadow-black/20 relative`}>
+                             <UserCircle2 className="h-4 w-4 sm:h-6 sm:w-6 text-white" />
                              {(learningProfiles[identity.identities[i]?.match?.profile.id || -1] || (i === 0 && isProfileLocked.current)) && (
                                <motion.div 
                                  initial={{ scale: 0 }}
                                  animate={{ scale: 1 }}
-                                 className="absolute -top-1 -right-1 w-4 h-4 bg-primary rounded-full border-2 border-white"
+                                 className="absolute -top-1 -right-1 w-3 h-3 sm:w-4 sm:h-4 bg-primary rounded-full border-2 border-white"
                                >
                                  <div className="absolute inset-0 bg-primary rounded-full animate-ping" />
                                </motion.div>
                              )}
                            </div>
                            <div>
-                             <div className="text-[10px] font-bold text-white/40 uppercase tracking-widest leading-none mb-1 flex items-center gap-1">
-                               User ID
+                             <div className="text-[8px] sm:text-[10px] font-bold text-white/40 uppercase tracking-widest leading-none mb-0.5 sm:mb-1 flex items-center gap-1">
+                               ID
                                {isProfileLocked.current && i === 0 && (
-                                 <span className="text-[8px] bg-green-500/20 text-green-400 px-1 rounded">Locked</span>
-                               )}
-                               {learningProfiles[identity.identities[i]?.match?.profile.id || -1] && (
-                                 <span className="text-[8px] bg-primary/20 text-primary px-1 rounded animate-pulse">Studying...</span>
+                                 <span className="text-[7px] sm:text-[8px] bg-green-500/20 text-green-400 px-1 rounded">Locked</span>
                                )}
                              </div>
-                              <div className="text-sm font-bold tracking-tight flex items-center gap-2">
+                              <div className="text-[10px] sm:text-sm font-bold tracking-tight flex items-center gap-1 sm:gap-2">
                                 {identity.identities[i]?.match?.profile.name || (
                                   <>
-                                    <span className="text-white/40 italic">Unknown</span>
+                                    <span className="text-white/40 italic text-[9px] sm:text-sm">Unknown</span>
                                     <Button 
                                       variant="ghost" 
                                       size="sm" 
                                       onClick={() => setLocation('/people')}
-                                      className="h-5 px-1.5 text-[8px] bg-primary/20 text-primary hover:bg-primary/40 pointer-events-auto"
+                                      className="h-4 sm:h-5 px-1 sm:px-1.5 text-[7px] sm:text-[8px] bg-primary/20 text-primary hover:bg-primary/40 pointer-events-auto"
                                     >
-                                      Enroll Now
+                                      Enroll
                                     </Button>
                                   </>
                                 )}
@@ -453,28 +449,28 @@ export default function LiveMirror() {
                            </div>
                         </div>
                         <div className="text-right">
-                           <div className="text-[10px] font-bold text-white/40 uppercase tracking-widest leading-none mb-1">Wellness</div>
-                           <div className="text-xl font-heading font-bold text-primary">{Math.round(m.wellnessScore)}</div>
+                           <div className="text-[8px] sm:text-[10px] font-bold text-white/40 uppercase tracking-widest leading-none mb-0.5 sm:mb-1">Score</div>
+                           <div className="text-base sm:text-xl font-heading font-bold text-primary">{Math.round(m.wellnessScore)}</div>
                         </div>
                       </div>
                       
-                      <div className="grid grid-cols-2 gap-3">
-                        <div className="bg-white/5 rounded-2xl p-3 border border-white/10">
-                           <div className="text-[8px] font-bold text-white/30 uppercase mb-1 tracking-widest">Behavior</div>
-                           <div className="text-xs font-bold capitalize truncate flex items-center gap-1.5">
-                             <div className={`w-1.5 h-1.5 rounded-full ${m.posture === 'upright' ? 'bg-green-400' : 'bg-orange-400'}`} />
+                      <div className="flex gap-1.5 sm:grid sm:grid-cols-2 sm:gap-3">
+                        <div className="bg-white/5 rounded-xl sm:rounded-2xl px-2 py-1.5 sm:p-3 border border-white/10 flex-1 min-w-0">
+                           <div className="text-[7px] sm:text-[8px] font-bold text-white/30 uppercase mb-0.5 sm:mb-1 tracking-widest">Behavior</div>
+                           <div className="text-[9px] sm:text-xs font-bold capitalize truncate flex items-center gap-1">
+                             <div className={`w-1.5 h-1.5 rounded-full shrink-0 ${m.posture === 'upright' ? 'bg-green-400' : 'bg-orange-400'}`} />
                              {m.posture.replace("_", " ")}
                            </div>
                         </div>
-                        <div className="bg-white/5 rounded-2xl p-3 border border-white/10">
-                           <div className="text-[8px] font-bold text-white/30 uppercase mb-1 tracking-widest">Emotion</div>
-                           <div className="text-xs font-bold capitalize truncate flex items-center gap-1.5">
-                             {m.emotion === 'happy' && <Smile className="w-3.5 h-3.5 text-yellow-400" />}
-                             {m.emotion === 'neutral' && <Meh className="w-3.5 h-3.5 text-blue-400" />}
-                             {m.emotion === 'sad' && <Frown className="w-3.5 h-3.5 text-indigo-400" />}
-                             {m.emotion === 'surprised' && <Ghost className="w-3.5 h-3.5 text-purple-400" />}
-                             {(m.emotion !== 'happy' && m.emotion !== 'neutral' && m.emotion !== 'sad' && m.emotion !== 'surprised') && <Activity className="w-3.5 h-3.5 text-primary" />}
-                             {m.emotion}
+                        <div className="bg-white/5 rounded-xl sm:rounded-2xl px-2 py-1.5 sm:p-3 border border-white/10 flex-1 min-w-0">
+                           <div className="text-[7px] sm:text-[8px] font-bold text-white/30 uppercase mb-0.5 sm:mb-1 tracking-widest">Emotion</div>
+                           <div className="text-[9px] sm:text-xs font-bold capitalize truncate flex items-center gap-1">
+                             {m.emotion === 'happy' && <Smile className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-yellow-400 shrink-0" />}
+                             {m.emotion === 'neutral' && <Meh className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-blue-400 shrink-0" />}
+                             {m.emotion === 'sad' && <Frown className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-indigo-400 shrink-0" />}
+                             {m.emotion === 'surprised' && <Ghost className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-purple-400 shrink-0" />}
+                             {(m.emotion !== 'happy' && m.emotion !== 'neutral' && m.emotion !== 'sad' && m.emotion !== 'surprised') && <Activity className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-primary shrink-0" />}
+                             <span className="truncate">{m.emotion}</span>
                            </div>
                         </div>
                       </div>
