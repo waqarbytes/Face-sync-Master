@@ -312,17 +312,19 @@ export default function LiveMirror() {
   // Warning is now shown inside the main UI instead.
 
   return (
-    <div className="mx-auto max-w-5xl space-y-6 pb-6">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="font-heading text-4xl font-bold tracking-tight text-foreground">Live Mirror</h1>
-          <p className="text-muted-foreground font-medium flex items-center gap-2 mt-1">
-            <Zap className="w-4 h-4 text-primary" /> Real-time wellness monitoring
-          </p>
+    <div className="mx-auto max-w-5xl space-y-4 sm:space-y-6 pb-6 px-3 sm:px-0">
+      <div className="flex flex-col gap-3 sm:gap-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="font-heading text-2xl sm:text-4xl font-bold tracking-tight text-foreground">Live Mirror</h1>
+            <p className="text-muted-foreground font-medium flex items-center gap-2 mt-1 text-xs sm:text-base">
+              <Zap className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-primary" /> Real-time wellness monitoring
+            </p>
+          </div>
         </div>
 
         {!baselineData && !baselineLoading && (
-          <div className="flex-1 max-w-sm px-4 py-2 bg-amber-500/10 border border-amber-500/20 rounded-2xl flex items-center gap-3">
+          <div className="px-3 py-2 bg-amber-500/10 border border-amber-500/20 rounded-2xl flex items-center gap-3">
              <AlertCircle className="w-4 h-4 text-amber-500 shrink-0" />
              <p className="text-[10px] font-bold text-amber-600/80 uppercase tracking-tight leading-tight">
                Calibration Missing. Using default profile for now.
@@ -331,22 +333,22 @@ export default function LiveMirror() {
           </div>
         )}
         
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-2 sm:gap-3">
           {!activeSessionId && (
-            <div className="flex items-center bg-secondary/10 border border-border/40 p-1 rounded-2xl">
-              <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-background/50 border border-border/20 shadow-sm">
-                <UserCircle2 className={`w-4 h-4 ${currentProfileId ? 'text-primary' : 'text-muted-foreground'}`} />
+            <div className="flex items-center bg-secondary/10 border border-border/40 p-1 rounded-2xl flex-shrink min-w-0">
+              <div className="flex items-center gap-2 px-2 sm:px-3 py-1.5 rounded-xl bg-background/50 border border-border/20 shadow-sm">
+                <UserCircle2 className={`w-4 h-4 shrink-0 ${currentProfileId ? 'text-primary' : 'text-muted-foreground'}`} />
                 <select 
                   value={currentProfileId || ""}
                   onChange={(e) => setManualProfileId(e.target.value ? parseInt(e.target.value) : null)}
-                  className="bg-transparent border-none text-[10px] font-black uppercase tracking-widest focus:ring-0 cursor-pointer pr-8 outline-none text-foreground min-w-[120px]"
+                  className="bg-transparent border-none text-[10px] font-black uppercase tracking-widest focus:ring-0 cursor-pointer pr-6 outline-none text-foreground min-w-0 max-w-[100px] sm:max-w-[120px]"
                 >
                   <option value="">{identifiedProfileId ? "Auto Verified" : "Who are you?"}</option>
                   {profiles?.map(p => (
                     <option key={p.id} value={p.id}>{p.name}</option>
                   ))}
                 </select>
-                {currentProfileId && <CheckCircle2 className="w-3.5 h-3.5 text-primary ml-[-24px] pointer-events-none" />}
+                {currentProfileId && <CheckCircle2 className="w-3.5 h-3.5 text-primary ml-[-20px] pointer-events-none" />}
               </div>
             </div>
           )}
@@ -355,24 +357,24 @@ export default function LiveMirror() {
             <Button 
               onClick={handleStart} 
               size="lg" 
-              className="rounded-2xl h-12 px-8 font-heading font-bold shadow-xl shadow-primary/20 hover:scale-[1.02] active:scale-[0.98] transition-all"
+              className="rounded-2xl h-10 sm:h-12 px-4 sm:px-8 font-heading font-bold shadow-xl shadow-primary/20 hover:scale-[1.02] active:scale-[0.98] transition-all text-sm sm:text-base flex-shrink-0"
             >
-              <Camera className="mr-2 h-5 w-5" /> Start Mirroring
+              <Camera className="mr-1.5 sm:mr-2 h-4 w-4 sm:h-5 sm:w-5" /> <span className="hidden xs:inline">Start </span>Mirroring
             </Button>
           ) : (
             <Button
               variant="destructive"
               onClick={handleEnd}
               size="lg"
-              className="rounded-2xl h-12 px-8 font-heading font-bold shadow-xl shadow-destructive/20 hover:scale-[1.02] active:scale-[0.98] transition-all"
+              className="rounded-2xl h-10 sm:h-12 px-4 sm:px-8 font-heading font-bold shadow-xl shadow-destructive/20 hover:scale-[1.02] active:scale-[0.98] transition-all text-sm sm:text-base flex-shrink-0"
             >
-              <StopCircle className="mr-2 h-5 w-5" /> Stop Session
+              <StopCircle className="mr-1.5 sm:mr-2 h-4 w-4 sm:h-5 sm:w-5" /> Stop Session
             </Button>
           )}
         </div>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
+      <div className="grid gap-4 sm:gap-6 lg:grid-cols-[1fr_320px]">
         {/* Main Camera Immersive View */}
         <div className="relative group">
           <Card className="overflow-hidden border-border/40 bg-black/5 backdrop-blur-sm rounded-3xl shadow-2xl ring-1 ring-border/20">
@@ -521,27 +523,27 @@ export default function LiveMirror() {
 
               {/* Sidebar Metrics (Primary User Only) */}
               {allMetrics[0] && (
-                <div className="absolute bottom-6 left-6 right-6 flex items-end justify-between pointer-events-none">
-                   <div className="space-y-2">
-                     <div className="px-3 py-1 rounded-lg bg-black/30 border border-white/5 backdrop-blur-md text-[10px] font-bold text-white/50 uppercase tracking-widest">
+                <div className="absolute bottom-3 sm:bottom-6 left-3 sm:left-6 right-3 sm:right-6 flex items-end justify-between pointer-events-none">
+                   <div className="space-y-1.5 sm:space-y-2">
+                     <div className="px-2 sm:px-3 py-1 rounded-lg bg-black/30 border border-white/5 backdrop-blur-md text-[8px] sm:text-[10px] font-bold text-white/50 uppercase tracking-widest">
                        Primary User Vitals
                      </div>
-                     <div className="flex gap-2">
-                        <div className="px-4 py-2 rounded-2xl bg-black/40 border border-white/10 backdrop-blur-xl text-white shadow-2xl">
-                           <div className="text-[10px] text-white/40 font-bold uppercase tracking-tighter">Posture</div>
-                           <div className="text-sm font-bold capitalize text-primary-foreground">{allMetrics[0].posture.replace("_", " ")}</div>
+                     <div className="flex gap-1.5 sm:gap-2">
+                        <div className="px-2 sm:px-4 py-1.5 sm:py-2 rounded-xl sm:rounded-2xl bg-black/40 border border-white/10 backdrop-blur-xl text-white shadow-2xl">
+                           <div className="text-[8px] sm:text-[10px] text-white/40 font-bold uppercase tracking-tighter">Posture</div>
+                           <div className="text-xs sm:text-sm font-bold capitalize text-primary-foreground">{allMetrics[0].posture.replace("_", " ")}</div>
                         </div>
-                        <div className="px-4 py-2 rounded-2xl bg-black/40 border border-white/10 backdrop-blur-xl text-white shadow-2xl">
-                           <div className="text-[10px] text-white/40 font-bold uppercase tracking-tighter">Focus</div>
-                           <div className="text-sm font-bold text-primary-foreground">{allMetrics[0].emotion}</div>
+                        <div className="px-2 sm:px-4 py-1.5 sm:py-2 rounded-xl sm:rounded-2xl bg-black/40 border border-white/10 backdrop-blur-xl text-white shadow-2xl">
+                           <div className="text-[8px] sm:text-[10px] text-white/40 font-bold uppercase tracking-tighter">Focus</div>
+                           <div className="text-xs sm:text-sm font-bold text-primary-foreground">{allMetrics[0].emotion}</div>
                         </div>
                      </div>
                    </div>
                    
-                   <div className="w-16 h-16 rounded-2xl bg-primary flex items-center justify-center shadow-2xl shadow-primary/40 border border-white/20">
+                   <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-xl sm:rounded-2xl bg-primary flex items-center justify-center shadow-2xl shadow-primary/40 border border-white/20">
                       <div className="text-center">
-                        <div className="text-[10px] text-white/60 font-bold leading-none">SCORE</div>
-                        <div className="text-xl font-heading font-bold text-white leading-none mt-1">{Math.round(allMetrics[0].wellnessScore)}</div>
+                        <div className="text-[8px] sm:text-[10px] text-white/60 font-bold leading-none">SCORE</div>
+                        <div className="text-base sm:text-xl font-heading font-bold text-white leading-none mt-0.5 sm:mt-1">{Math.round(allMetrics[0].wellnessScore)}</div>
                       </div>
                    </div>
                 </div>
