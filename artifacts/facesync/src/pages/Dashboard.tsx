@@ -18,6 +18,7 @@ import { useListProfiles } from "@workspace/api-client-react";
 
 export default function Dashboard() {
   const [selectedProfileId, setSelectedProfileId] = useState<number | null>(null);
+  const [trendDays, setTrendDays] = useState<number>(14);
   const { data: profiles } = useListProfiles();
 
   const { data: summary, isLoading: summaryLoading } = useQuery<any>({
@@ -26,13 +27,23 @@ export default function Dashboard() {
   });
 
   const { data: trend, isLoading: trendLoading } = useQuery<any[]>({
-    queryKey: ["insights-trend", selectedProfileId],
-    queryFn: () => fetch(`/api/insights/trend?days=14${selectedProfileId ? `&profileId=${selectedProfileId}` : ''}`).then(res => res.json())
+    queryKey: ["insights-trend", selectedProfileId, trendDays],
+    queryFn: () => fetch(`/api/insights/trend?days=${trendDays}${selectedProfileId ? `&profileId=${selectedProfileId}` : ''}`).then(res => res.json())
   });
 
   const { data: posture, isLoading: postureLoading } = useQuery<any[]>({
     queryKey: ["insights-posture", selectedProfileId],
     queryFn: () => fetch(`/api/insights/posture-breakdown${selectedProfileId ? `?profileId=${selectedProfileId}` : ''}`).then(res => res.json())
+  });
+
+  const { data: voice, isLoading: voiceLoading } = useQuery<any[]>({
+    queryKey: ["insights-voice", selectedProfileId],
+    queryFn: () => fetch(`/api/insights/voice-breakdown${selectedProfileId ? `?profileId=${selectedProfileId}` : ''}`).then(res => res.json())
+  });
+
+  const { data: emotion, isLoading: emotionLoading } = useQuery<any[]>({
+    queryKey: ["insights-emotion", selectedProfileId],
+    queryFn: () => fetch(`/api/insights/emotion-breakdown${selectedProfileId ? `?profileId=${selectedProfileId}` : ''}`).then(res => res.json())
   });
 
   const { data: sessions, isLoading: sessionsLoading } = useQuery<any[]>({
@@ -94,7 +105,15 @@ export default function Dashboard() {
   };
 
   return (
-    <div className="space-y-10 max-w-5xl mx-auto pb-12 px-4 md:px-0">
+    <div className="relative min-h-screen">
+      {/* Ambient Gradient Mesh Background */}
+      <div className="fixed inset-0 pointer-events-none overflow-hidden flex items-center justify-center z-[-1]">
+         <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-primary/20 blur-[120px] rounded-full mix-blend-screen opacity-50 animate-[pulse_8s_ease-in-out_infinite]" />
+         <div className="absolute bottom-[-10%] right-[-10%] w-[60%] h-[60%] bg-blue-500/10 blur-[150px] rounded-full mix-blend-screen opacity-50" />
+         <div className="absolute top-[20%] right-[20%] w-[30%] h-[30%] bg-purple-500/10 blur-[100px] rounded-full mix-blend-screen opacity-40 animate-[pulse_10s_ease-in-out_infinite]" />
+      </div>
+      
+      <div className="relative z-10 space-y-10 max-w-5xl mx-auto pb-12 px-4 md:px-0 pt-8">
       {/* Header */}
       <motion.div 
         initial={{ opacity: 0, x: -20 }}
@@ -151,7 +170,7 @@ export default function Dashboard() {
           { label: "Sessions", value: summary?.totalSessions || 0, icon: Target, color: "text-purple-500", bg: "bg-purple-500/10" },
         ].map((stat, i) => (
           <motion.div key={i} variants={item}>
-            <Card className="group hover:scale-[1.02] transition-all duration-300 border-border/40 bg-card/60 backdrop-blur-sm shadow-sm hover:shadow-md rounded-2xl overflow-hidden">
+            <Card className="group hover:scale-[1.02] transition-all duration-300 border-white/10 bg-white/5 dark:bg-black/20 backdrop-blur-xl shadow-2xl hover:shadow-primary/10 rounded-3xl overflow-hidden ring-1 ring-white/5">
               <CardContent className="p-6">
                 <div className="flex items-center gap-4">
                   <div className={`p-3 ${stat.bg} rounded-2xl ${stat.color} transition-transform group-hover:rotate-6`}>
@@ -173,16 +192,20 @@ export default function Dashboard() {
       <div className="grid gap-6 lg:grid-cols-3">
         {/* Wellness Chart */}
         <motion.div variants={item} initial="hidden" animate="show" className="lg:col-span-2">
-          <Card className="h-full border-border/40 bg-card/40 backdrop-blur-sm shadow-sm rounded-3xl overflow-hidden">
+          <Card className="h-full border-white/10 bg-white/5 dark:bg-black/20 backdrop-blur-2xl shadow-2xl rounded-[2rem] overflow-hidden ring-1 ring-white/5">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <div>
                 <CardTitle className="font-heading font-bold text-xl">Wellness Trend</CardTitle>
                 <CardDescription className="font-medium">Daily performance index</CardDescription>
               </div>
               <div className="flex gap-1">
-                {['7D', '14D', '30D'].map(t => (
-                  <button key={t} className={`px-3 py-1 rounded-full text-[10px] font-bold transition-all ${t === '14D' ? 'bg-primary text-white shadow-lg shadow-primary/20' : 'bg-secondary/50 text-muted-foreground hover:bg-secondary'}`}>
-                    {t}
+                {[7, 14, 30].map(t => (
+                  <button 
+                    key={t} 
+                    onClick={() => setTrendDays(t)}
+                    className={`px-3 py-1 rounded-full text-[10px] font-bold transition-all ${trendDays === t ? 'bg-primary text-white shadow-lg shadow-primary/20' : 'bg-secondary/50 text-muted-foreground hover:bg-secondary'}`}
+                  >
+                    {t}D
                   </button>
                 ))}
               </div>
@@ -228,7 +251,7 @@ export default function Dashboard() {
 
         {/* Posture Pie */}
         <motion.div variants={item} initial="hidden" animate="show">
-          <Card className="h-full border-border/40 bg-card/40 backdrop-blur-sm shadow-sm rounded-3xl">
+          <Card className="h-full border-white/10 bg-white/5 dark:bg-black/20 backdrop-blur-2xl shadow-2xl rounded-[2rem] ring-1 ring-white/5">
             <CardHeader>
               <CardTitle className="font-heading font-bold text-xl">Posture Balance</CardTitle>
               <CardDescription className="font-medium">Distribution across sessions</CardDescription>
@@ -271,9 +294,83 @@ export default function Dashboard() {
         </motion.div>
       </div>
 
+      <div className="grid gap-6 lg:grid-cols-2">
+        {/* Visual Emotion */}
+        <motion.div variants={item} initial="hidden" animate="show">
+          <Card className="h-full border-white/10 bg-white/5 dark:bg-black/20 backdrop-blur-2xl shadow-2xl rounded-[2rem] ring-1 ring-white/5">
+            <CardHeader>
+              <CardTitle className="font-heading font-bold text-xl">Facial Expressions</CardTitle>
+              <CardDescription className="font-medium">Visual emotion tracking</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="h-[280px] relative">
+                {emotionLoading ? <Skeleton className="h-full w-full rounded-full" /> : emotion && emotion.length > 0 ? (
+                  <>
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                         <Pie data={emotion} cx="50%" cy="50%" innerRadius={70} outerRadius={95} paddingAngle={8} dataKey="ratio" nameKey="emotion" animationBegin={300} animationDuration={1200}>
+                           {Array.isArray(emotion) && emotion.map((entry: any, index: number) => (
+                             <Cell key={`cell-${index}`} fill={pieColors[index % pieColors.length]} className="stroke-background stroke-[4px]" />
+                           ))}
+                         </Pie>
+                        <Tooltip formatter={(val: number) => [`${Math.round(val * 100)}%`]} contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: 'var(--shadow-md)', fontWeight: 700 }} />
+                      </PieChart>
+                    </ResponsiveContainer>
+                    <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                       <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Dominant</span>
+                       <span className="text-xl font-heading font-bold text-foreground capitalize">
+                         {Array.isArray(emotion) && emotion.length > 0 
+                           ? [...emotion].sort((a: any, b: any) => b.ratio - a.ratio)[0]?.emotion
+                           : "---"}
+                       </span>
+                    </div>
+                  </>
+                ) : <div className="flex h-full items-center justify-center text-muted-foreground font-medium italic">No visual data yet</div>}
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
+
+        {/* Vocal Emotion */}
+        <motion.div variants={item} initial="hidden" animate="show">
+          <Card className="h-full border-white/10 bg-white/5 dark:bg-black/20 backdrop-blur-2xl shadow-2xl rounded-[2rem] ring-1 ring-white/5">
+            <CardHeader>
+              <CardTitle className="font-heading font-bold text-xl">Vocal Intelligence</CardTitle>
+              <CardDescription className="font-medium">Voice emotion & tone history</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="h-[280px] relative">
+                {voiceLoading ? <Skeleton className="h-full w-full rounded-full" /> : voice && voice.length > 0 ? (
+                  <>
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                         <Pie data={voice} cx="50%" cy="50%" innerRadius={70} outerRadius={95} paddingAngle={8} dataKey="ratio" nameKey="emotion" animationBegin={400} animationDuration={1200}>
+                           {Array.isArray(voice) && voice.map((entry: any, index: number) => (
+                             <Cell key={`cell-${index}`} fill={[COLORS.accent, COLORS.primary, COLORS.secondary][index % 3]} className="stroke-background stroke-[4px]" />
+                           ))}
+                         </Pie>
+                        <Tooltip formatter={(val: number) => [`${Math.round(val * 100)}%`]} contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: 'var(--shadow-md)', fontWeight: 700 }} />
+                      </PieChart>
+                    </ResponsiveContainer>
+                    <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                       <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Dominant Tone</span>
+                       <span className="text-xl font-heading font-bold text-foreground capitalize">
+                         {Array.isArray(voice) && voice.length > 0 
+                           ? [...voice].sort((a: any, b: any) => b.ratio - a.ratio)[0]?.emotion
+                           : "---"}
+                       </span>
+                    </div>
+                  </>
+                ) : <div className="flex h-full items-center justify-center text-muted-foreground font-medium italic text-center px-8">No vocal data recorded.<br/>Ensure voice model is active during sessions.</div>}
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
+      </div>
+
       {/* User Summary Table */}
       <motion.div variants={item} initial="hidden" animate="show">
-        <Card className="border-border/40 bg-card/30 backdrop-blur-sm shadow-sm rounded-3xl overflow-hidden">
+        <Card className="border-white/10 bg-white/5 dark:bg-black/20 backdrop-blur-2xl shadow-2xl rounded-[2rem] overflow-hidden ring-1 ring-white/5">
           <CardHeader className="flex flex-row items-center justify-between">
             <div>
               <CardTitle className="font-heading font-bold text-xl">User Performance</CardTitle>
@@ -288,10 +385,10 @@ export default function Dashboard() {
               <table className="w-full text-left border-collapse">
                 <thead>
                   <tr className="border-b border-border/50">
-                    <th className="pb-4 text-[10px] font-bold text-muted-foreground uppercase tracking-widest">User Identity</th>
-                    <th className="pb-4 text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Total Sessions</th>
-                    <th className="pb-4 text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Active Time</th>
-                    <th className="pb-4 text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Avg Score</th>
+                    <th className="pb-4 pr-6 text-[10px] font-bold text-muted-foreground uppercase tracking-widest">User Identity</th>
+                    <th className="pb-4 pr-6 text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Total Sessions</th>
+                    <th className="pb-4 pr-6 text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Active Time</th>
+                    <th className="pb-4 pr-8 text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Avg Score</th>
                     <th className="pb-4 text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Last Active</th>
                   </tr>
                 </thead>
@@ -299,7 +396,7 @@ export default function Dashboard() {
                   {userSummaryLoading ? [1, 2, 3].map(i => <tr key={i}><td colSpan={5} className="py-4"><Skeleton className="h-10 w-full rounded-xl" /></td></tr>) : userSummary && userSummary.length > 0 ? (
                     userSummary.map((user: any) => (
                       <tr key={user.profileId} className="group hover:bg-primary/5 transition-colors">
-                        <td className="py-4">
+                        <td className="py-4 pr-6">
                           <div className="flex items-center gap-3">
                             <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center text-primary font-bold text-xs">
                               {user.name?.[0] || 'U'}
@@ -307,10 +404,10 @@ export default function Dashboard() {
                             <span className="font-bold text-sm text-foreground">{user.name}</span>
                           </div>
                         </td>
-                        <td className="py-4 text-sm font-medium text-muted-foreground">{user.totalSessions}</td>
-                        <td className="py-4 text-sm font-medium text-muted-foreground">{Math.round(user.totalMinutes)} mins</td>
-                        <td className="py-4">
-                           <div className="flex items-center gap-2">
+                        <td className="py-4 pr-6 text-sm font-medium text-muted-foreground">{user.totalSessions}</td>
+                        <td className="py-4 pr-6 text-sm font-medium text-muted-foreground">{Math.round(user.totalMinutes)} mins</td>
+                        <td className="py-4 pr-8">
+                           <div className="flex items-center gap-2 max-w-[120px]">
                               <div className="flex-1 h-1.5 w-12 bg-secondary/30 rounded-full overflow-hidden">
                                  <div className="h-full bg-primary" style={{ width: `${user.avgWellnessScore || 0}%` }} />
                               </div>
@@ -332,7 +429,7 @@ export default function Dashboard() {
 
       {/* Recent Sessions */}
       <motion.div variants={item} initial="hidden" animate="show">
-        <Card className="border-border/40 bg-card/30 backdrop-blur-sm shadow-sm rounded-3xl overflow-hidden">
+        <Card className="border-white/10 bg-white/5 dark:bg-black/20 backdrop-blur-2xl shadow-2xl rounded-[2rem] overflow-hidden ring-1 ring-white/5">
           <CardHeader className="flex flex-row items-center justify-between">
             <div>
               <CardTitle className="font-heading font-bold text-xl">Recent Mirroring</CardTitle>
@@ -346,7 +443,7 @@ export default function Dashboard() {
             {sessionsLoading ? <div className="space-y-4">{[1, 2, 3].map((i) => <Skeleton key={i} className="h-20 w-full rounded-2xl" />)}</div> : sessions && sessions.length > 0 ? (
               <div className="space-y-3">
                 {sessions.map((session: any) => (
-                  <Link key={session.id} href={`/sessions/${session.id}`} className="flex items-center justify-between p-4 rounded-2xl bg-background/50 border border-border/50 hover:bg-background hover:border-primary/30 transition-all group">
+                  <Link key={session.id} href={`/sessions/${session.id}`} className="flex items-center justify-between p-4 rounded-2xl bg-white/5 dark:bg-black/40 border border-white/10 hover:bg-white/10 dark:hover:bg-black/60 hover:border-primary/30 hover:shadow-lg hover:shadow-primary/5 transition-all group backdrop-blur-md">
                     <div className="flex items-center gap-4">
                       <div className="w-12 h-12 rounded-xl bg-secondary/50 flex items-center justify-center text-primary group-hover:scale-110 transition-transform"><Activity className="w-6 h-6" /></div>
                       <div>
@@ -372,6 +469,7 @@ export default function Dashboard() {
           </CardContent>
         </Card>
       </motion.div>
+      </div>
     </div>
   );
 }

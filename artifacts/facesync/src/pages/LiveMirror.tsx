@@ -97,6 +97,17 @@ export default function LiveMirror() {
   const currentProfileId = manualProfileId || identifiedProfileId;
   const currentProfileName = profiles?.find(p => p.id === currentProfileId)?.name || "Unknown";
 
+  // Debounce "Unknown" state to prevent flashing while identity model loads
+  const [isTrulyUnknown, setIsTrulyUnknown] = useState(false);
+  useEffect(() => {
+    if (activeSessionId && allMetrics.length > 0 && currentProfileName === "Unknown") {
+      const timer = setTimeout(() => setIsTrulyUnknown(true), 2000);
+      return () => clearTimeout(timer);
+    } else {
+      setIsTrulyUnknown(false);
+    }
+  }, [activeSessionId, allMetrics.length, currentProfileName]);
+
   // Intervention Logic Refs
   const badPostureStart = useRef<number>(0);
   const highStressStart = useRef<number>(0);
@@ -432,6 +443,36 @@ export default function LiveMirror() {
                 height={720}
                 className="absolute inset-0 h-full w-full object-cover scale-x-[-1] pointer-events-none"
               />
+
+              {/* Unknown Session Alert */}
+              <AnimatePresence>
+                {activeSessionId && isTrulyUnknown && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -20, scale: 0.95 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: -20, scale: 0.95 }}
+                    className="absolute top-6 left-1/2 -translate-x-1/2 pointer-events-auto z-40 w-full max-w-[320px] px-4"
+                  >
+                    <div className="bg-black/60 backdrop-blur-2xl border border-orange-500/30 p-5 rounded-3xl shadow-2xl flex flex-col items-center gap-3 text-center ring-1 ring-orange-500/20">
+                       <div className="w-12 h-12 rounded-full bg-orange-500/20 flex items-center justify-center shadow-[0_0_15px_rgba(249,115,22,0.3)]">
+                          <UserCircle2 className="w-6 h-6 text-orange-500 animate-pulse" />
+                       </div>
+                       <div>
+                         <p className="text-white font-bold text-base">Face Not Recognized</p>
+                         <p className="text-white/70 text-xs font-medium mt-1.5 leading-relaxed">
+                           You are tracking an anonymous session. Register your identity to save these wellness insights.
+                         </p>
+                       </div>
+                       <Button 
+                         onClick={() => setLocation('/people')}
+                         className="w-full bg-white text-black hover:bg-white/90 font-bold rounded-xl h-10 mt-1 shadow-[0_0_20px_rgba(255,255,255,0.2)] hover:scale-[1.02] active:scale-[0.98] transition-all"
+                       >
+                         Register Identity
+                       </Button>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
 
                {/* Multi-Person Overlays */}
               <AnimatePresence mode="popLayout">

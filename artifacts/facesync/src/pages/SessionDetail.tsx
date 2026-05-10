@@ -1,17 +1,20 @@
 import { useRoute } from "wouter";
+import { useQuery } from "@tanstack/react-query";
 import { useGetSession, useListReadings } from "@workspace/api-client-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { format } from "date-fns";
 import { XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Area, AreaChart } from "recharts";
-import { ArrowLeft, Activity, Brain, User, Calendar, Clock, ChevronLeft, Share2, Download } from "lucide-react";
+import { ArrowLeft, Activity, Brain, User, Calendar, Clock, ChevronLeft, Share2, Download, Sparkles, Eye } from "lucide-react";
 import { Link } from "wouter";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
+import { useState } from "react";
 
 export default function SessionDetail() {
   const [, params] = useRoute("/sessions/:id");
   const id = Number(params?.id);
+  const [showRecommendations, setShowRecommendations] = useState(false);
 
   const { data: session, isLoading: sessionLoading } = useGetSession(id);
   const { data: readings, isLoading: readingsLoading } = useListReadings(id, { limit: 1000 });
@@ -47,6 +50,29 @@ export default function SessionDetail() {
     primary: "hsl(160, 60%, 40%)",
     accent: "hsl(35, 40%, 60%)",
     secondary: "hsl(210, 25%, 55%)",
+  };
+
+  const generateInsightText = (s: any) => {
+    const durationMin = Math.round((s.durationSec || 0) / 60);
+    let insight = `During this ${durationMin} minute window, your physical metrics were analyzed. `;
+    
+    if ((s.avgPosturePenalty || 0) > 1.5) {
+      insight += "We detected significant posture slouching or head tilting. A quick neck stretching routine is highly recommended. ";
+    } else {
+      insight += "Your posture remained highly stable and aligned throughout the session. ";
+    }
+
+    if ((s.avgEar || 0.3) < 0.25) {
+      insight += "Your eye aspect ratio indicates a lot of squinting or fatigue. Try resting your eyes. ";
+    } else {
+      insight += "Your eye focus was incredibly sharp with no signs of drowsiness. ";
+    }
+
+    if (s.dominantEmotion === "sad" || s.dominantEmotion === "angry") {
+      insight += "There were also subtle signs of facial tension. Remember to relax your jaw.";
+    }
+
+    return insight;
   };
 
   return (
@@ -165,6 +191,10 @@ export default function SessionDetail() {
                         <stop offset="5%" stopColor={COLORS.accent} stopOpacity={0.2}/>
                         <stop offset="95%" stopColor={COLORS.accent} stopOpacity={0}/>
                       </linearGradient>
+                      <linearGradient id="colorVoice" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.2}/>
+                        <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0}/>
+                      </linearGradient>
                     </defs>
                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" opacity={0.3} />
                     <XAxis 
@@ -186,7 +216,7 @@ export default function SessionDetail() {
                     <YAxis 
                       yAxisId="right"
                       orientation="right"
-                      domain={[0, 0.4]} 
+                      domain={[0, 1]} 
                       axisLine={false}
                       tickLine={false}
                       tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 10, fontWeight: 600 }}
@@ -225,6 +255,17 @@ export default function SessionDetail() {
                       fillOpacity={1} 
                       fill="url(#colorEar)" 
                     />
+                    <Area 
+                      yAxisId="right"
+                      type="monotone" 
+                      dataKey="vocalTension" 
+                      name="Vocal Tension"
+                      stroke="#8b5cf6" 
+                      strokeWidth={3}
+                      strokeDasharray="3 3"
+                      fillOpacity={1} 
+                      fill="url(#colorVoice)" 
+                    />
                   </AreaChart>
                 </ResponsiveContainer>
               ) : (
@@ -239,20 +280,80 @@ export default function SessionDetail() {
       </motion.div>
 
       {/* Insights Suggestion */}
-      <div className="bg-primary/5 rounded-[2rem] p-8 border border-primary/10 flex flex-col md:flex-row gap-8 items-center">
-         <div className="w-20 h-20 rounded-3xl bg-primary/10 flex items-center justify-center text-primary shrink-0 shadow-inner">
+      <div className="bg-primary/5 rounded-[2rem] p-8 border border-primary/10 flex flex-col md:flex-row gap-8 items-center relative overflow-hidden">
+         <div className="absolute top-0 right-0 w-64 h-64 bg-primary/10 blur-[80px] rounded-full mix-blend-screen pointer-events-none" />
+         <div className="w-20 h-20 rounded-3xl bg-primary/10 flex items-center justify-center text-primary shrink-0 shadow-inner z-10">
             <Brain className="w-10 h-10" />
          </div>
-         <div className="flex-1 space-y-2 text-center md:text-left">
+         <div className="flex-1 space-y-2 text-center md:text-left z-10">
             <h4 className="font-heading font-bold text-xl text-foreground">Intelligent Insights</h4>
             <p className="text-sm font-medium text-muted-foreground leading-relaxed">
-              Based on your eye aspect ratio and posture stability during this {Math.round((session.durationSec || 0) / 60)} minute window, we recommend a 5-minute stretching break. Your focus remained high, but your neck angle showed signs of minor tension towards the end.
+              {generateInsightText(session)}
             </p>
          </div>
-         <button className="whitespace-nowrap px-8 py-3 bg-primary text-white font-bold rounded-2xl shadow-lg shadow-primary/20 hover:scale-105 active:scale-95 transition-all">
+         <button 
+           onClick={() => setShowRecommendations(true)}
+           className="z-10 whitespace-nowrap px-8 py-3 bg-primary text-white font-bold rounded-2xl shadow-lg shadow-primary/20 hover:scale-105 active:scale-95 transition-all ring-1 ring-white/20"
+         >
             See Recommendations
          </button>
       </div>
+
+      {/* Interactive Modal */}
+      <AnimatePresence>
+        {showRecommendations && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
+            onClick={() => setShowRecommendations(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.95, y: 20 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.95, y: 20 }}
+              onClick={(e) => e.stopPropagation()}
+              className="w-full max-w-lg bg-card rounded-[2rem] p-8 shadow-2xl border border-border/50 relative overflow-hidden ring-1 ring-white/5"
+            >
+              <div className="absolute top-[-20%] right-[-20%] w-64 h-64 bg-primary/20 blur-[80px] rounded-full mix-blend-screen pointer-events-none" />
+              
+              <div className="flex justify-between items-center mb-6">
+                 <h3 className="text-2xl font-heading font-black text-foreground flex items-center gap-2">
+                    <Sparkles className="w-6 h-6 text-primary" /> Personalized Plan
+                 </h3>
+              </div>
+              
+              <div className="space-y-4 relative z-10">
+                {(session.avgPosturePenalty || 0) > 1.5 && (
+                  <div className="p-5 bg-blue-500/5 rounded-2xl border border-blue-500/20 backdrop-blur-sm">
+                     <h4 className="font-bold text-blue-500 mb-1 flex items-center gap-2"><User className="w-4 h-4"/> Posture Correction</h4>
+                     <p className="text-sm text-muted-foreground">Do 3 sets of chin tucks. Pull your head straight back like a turtle retreating into its shell. Hold for 5 seconds to counteract the forward-head posture detected in this session.</p>
+                  </div>
+                )}
+                
+                {(session.avgEar || 0.3) < 0.25 && (
+                  <div className="p-5 bg-amber-500/5 rounded-2xl border border-amber-500/20 backdrop-blur-sm">
+                     <h4 className="font-bold text-amber-500 mb-1 flex items-center gap-2"><Eye className="w-4 h-4"/> Eye Relief (20-20-20 Rule)</h4>
+                     <p className="text-sm text-muted-foreground">Your eye blink rate dropped indicating focus fatigue. Look at something 20 feet away for 20 seconds to relax your ciliary muscles.</p>
+                  </div>
+                )}
+
+                {((session.avgPosturePenalty || 0) <= 1.5 && (session.avgEar || 0.3) >= 0.25) && (
+                  <div className="p-5 bg-primary/5 rounded-2xl border border-primary/20 backdrop-blur-sm">
+                     <h4 className="font-bold text-primary mb-1 flex items-center gap-2"><Activity className="w-4 h-4"/> Outstanding Ergonomics!</h4>
+                     <p className="text-sm text-muted-foreground">Your metrics for this session look perfect. Maintain your current desk setup and screen distance—it's working perfectly for your body.</p>
+                  </div>
+                )}
+              </div>
+              
+              <Button onClick={() => setShowRecommendations(false)} className="w-full mt-8 rounded-xl h-12 font-bold hover:scale-[1.02] transition-transform shadow-xl shadow-primary/10 relative z-10">
+                Got it
+              </Button>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
