@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useLocation } from "wouter";
 import { useFaceTracker } from "@/hooks/useFaceTracker";
 import { useReadingBatcher } from "@/hooks/useReadingBatcher";
-import { getVoiceData } from "@/stores/voiceStore";
+import { getVoiceData, setVoiceData, clearVoiceData } from "@/stores/voiceStore";
 import {
   useGetBaseline,
   useCreateSession,
@@ -56,6 +56,12 @@ export default function LiveMirror() {
   const lastSyncTime = useRef(0);
   const [sparkline, setSparkline] = useState<number[]>([]);
   const [learningProfiles, setLearningProfiles] = useState<Record<number, boolean>>({});
+
+  // Voice Recording Refs
+  const audioStreamRef = useRef<MediaStream | null>(null);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
+  const voiceIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // Identity logic - Spatial Matching
   const getIdentityForFace = (faceCenter: { x: number, y: number }): typeof identity.identities[0] | null => {
@@ -294,6 +300,40 @@ export default function LiveMirror() {
           };
           setSparkline([]);
           start();
+          
+          // Start background voice analysis for session
+          navigator.mediaDevices.getUserMedia({ audio: true }).then(stream => {
+            audioStreamRef.current = stream;
+            const recorder = new MediaRecorder(stream);
+            mediaRecorderRef.current = recorder;
+            
+            voiceIntervalRef.current = setInterval(() => {
+              if (mediaRecorderRef.current && mediaRecorderRef.current.state === "inactive") {
+                audioChunksRef.current = [];
+                mediaRecorderRef.current.ondataavailable = (e) => {
+                  if (e.data.size > 0) audioChunksRef.current.push(e.data);
+                };
+                mediaRecorderRef.current.onstop = async () => {
+                  const blob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+                  const formData = new FormData();
+                  formData.append('file', blob, 'chunk.webm');
+                  try {
+                    const res = await fetch('http://localhost:5002/voice/analyze', { method: 'POST', body: formData });
+                    if (res.ok) {
+                      const data = await res.json();
+                      setVoiceData(data.emotion, data.vocal_tension ?? 0);
+                    }
+                  } catch (err) {}
+                };
+                mediaRecorderRef.current.start();
+                setTimeout(() => {
+                  if (mediaRecorderRef.current?.state === "recording") {
+                    mediaRecorderRef.current.stop();
+                  }
+                }, 2000);
+              }
+            }, 4000);
+          }).catch(e => console.warn("Mic access denied, no voice tracking this session."));
         },
         onError: (err) => {
           console.error("[SESSION_START] Mutation error:", err);
@@ -306,6 +346,14 @@ export default function LiveMirror() {
   const handleEnd = () => {
     if (!activeSessionId || !sessionStartTime) return;
     stop();
+    if (voiceIntervalRef.current) clearInterval(voiceIntervalRef.current);
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state === "recording") {
+      mediaRecorderRef.current.stop();
+    }
+    if (audioStreamRef.current) {
+      audioStreamRef.current.getTracks().forEach(t => t.stop());
+    }
+    clearVoiceData();
     const acc = metricsAcc.current;
     const dur = Math.floor((Date.now() - sessionStartTime) / 1000);
     const cnt = Math.max(1, acc.count);

@@ -19,6 +19,7 @@ import { useListProfiles } from "@workspace/api-client-react";
 export default function Dashboard() {
   const [selectedProfileId, setSelectedProfileId] = useState<number | null>(null);
   const [trendDays, setTrendDays] = useState<number>(14);
+  const [activeTab, setActiveTab] = useState<'face' | 'voice'>('face');
   const { data: profiles } = useListProfiles();
 
   const { data: summary, isLoading: summaryLoading } = useQuery<any>({
@@ -189,9 +190,9 @@ export default function Dashboard() {
         ))}
       </motion.div>
 
-      <div className="grid gap-6 lg:grid-cols-3">
+      <div className="grid gap-6 lg:grid-cols-1">
         {/* Wellness Chart */}
-        <motion.div variants={item} initial="hidden" animate="show" className="lg:col-span-2">
+        <motion.div variants={item} initial="hidden" animate="show">
           <Card className="h-full border-white/10 bg-white/5 dark:bg-black/20 backdrop-blur-2xl shadow-2xl rounded-[2rem] overflow-hidden ring-1 ring-white/5">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <div>
@@ -248,125 +249,164 @@ export default function Dashboard() {
             </CardContent>
           </Card>
         </motion.div>
-
-        {/* Posture Pie */}
-        <motion.div variants={item} initial="hidden" animate="show">
-          <Card className="h-full border-white/10 bg-white/5 dark:bg-black/20 backdrop-blur-2xl shadow-2xl rounded-[2rem] ring-1 ring-white/5">
-            <CardHeader>
-              <CardTitle className="font-heading font-bold text-xl">Posture Balance</CardTitle>
-              <CardDescription className="font-medium">Distribution across sessions</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="h-[280px] relative">
-                {postureLoading ? <Skeleton className="h-full w-full rounded-full" /> : posture && posture.length > 0 ? (
-                  <>
-                    <ResponsiveContainer width="100%" height="100%">
-                      <PieChart>
-                         <Pie data={posture} cx="50%" cy="50%" innerRadius={70} outerRadius={95} paddingAngle={8} dataKey="ratio" nameKey="posture" animationBegin={200} animationDuration={1200}>
-                           {Array.isArray(posture) && posture.map((entry: any, index: number) => (
-                             <Cell key={`cell-${index}`} fill={pieColors[index % pieColors.length]} className="stroke-background stroke-[4px]" />
-                           ))}
-                         </Pie>
-                        <Tooltip formatter={(val: number) => [`${Math.round(val * 100)}%`]} contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: 'var(--shadow-md)', fontWeight: 700 }} />
-                      </PieChart>
-                    </ResponsiveContainer>
-                    <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                       <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Dominant</span>
-                       <span className="text-xl font-heading font-bold text-foreground">
-                         {Array.isArray(posture) && posture.length > 0 
-                           ? [...posture].sort((a: any, b: any) => b.ratio - a.ratio)[0]?.posture.split('_')[0]
-                           : "---"}
-                       </span>
-                    </div>
-                  </>
-                ) : <div className="flex h-full items-center justify-center text-muted-foreground font-medium italic">No data yet</div>}
-              </div>
-              <div className="mt-4 grid grid-cols-2 gap-2">
-                 {Array.isArray(posture) && posture.slice(0, 4).map((p: any, i: number) => (
-                   <div key={i} className="flex items-center gap-2">
-                      <div className="w-2 h-2 rounded-full" style={{ backgroundColor: pieColors[i] }} />
-                      <span className="text-[10px] font-bold text-muted-foreground uppercase truncate">{p.posture.replace('_', ' ')}</span>
-                   </div>
-                 ))}
-              </div>
-            </CardContent>
-          </Card>
-        </motion.div>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-2">
-        {/* Visual Emotion */}
-        <motion.div variants={item} initial="hidden" animate="show">
-          <Card className="h-full border-white/10 bg-white/5 dark:bg-black/20 backdrop-blur-2xl shadow-2xl rounded-[2rem] ring-1 ring-white/5">
-            <CardHeader>
-              <CardTitle className="font-heading font-bold text-xl">Facial Expressions</CardTitle>
-              <CardDescription className="font-medium">Visual emotion tracking</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="h-[280px] relative">
-                {emotionLoading ? <Skeleton className="h-full w-full rounded-full" /> : emotion && emotion.length > 0 ? (
-                  <>
-                    <ResponsiveContainer width="100%" height="100%">
-                      <PieChart>
-                         <Pie data={emotion} cx="50%" cy="50%" innerRadius={70} outerRadius={95} paddingAngle={8} dataKey="ratio" nameKey="emotion" animationBegin={300} animationDuration={1200}>
-                           {Array.isArray(emotion) && emotion.map((entry: any, index: number) => (
-                             <Cell key={`cell-${index}`} fill={pieColors[index % pieColors.length]} className="stroke-background stroke-[4px]" />
-                           ))}
-                         </Pie>
-                        <Tooltip formatter={(val: number) => [`${Math.round(val * 100)}%`]} contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: 'var(--shadow-md)', fontWeight: 700 }} />
-                      </PieChart>
-                    </ResponsiveContainer>
-                    <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                       <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Dominant</span>
-                       <span className="text-xl font-heading font-bold text-foreground capitalize">
-                         {Array.isArray(emotion) && emotion.length > 0 
-                           ? [...emotion].sort((a: any, b: any) => b.ratio - a.ratio)[0]?.emotion
-                           : "---"}
-                       </span>
-                    </div>
-                  </>
-                ) : <div className="flex h-full items-center justify-center text-muted-foreground font-medium italic">No visual data yet</div>}
-              </div>
-            </CardContent>
-          </Card>
-        </motion.div>
+      {/* Analytics Tabs */}
+      <motion.div variants={item} initial="hidden" animate="show" className="flex justify-center my-8">
+        <div className="flex bg-secondary/10 p-1.5 rounded-2xl border border-border/40 backdrop-blur-md">
+          <button
+            onClick={() => setActiveTab('face')}
+            className={`px-8 py-2.5 rounded-xl text-sm font-bold transition-all flex items-center gap-2 ${activeTab === 'face' ? 'bg-primary text-white shadow-lg shadow-primary/20' : 'text-muted-foreground hover:text-foreground'}`}
+          >
+            <User className="w-4 h-4" /> Face Analytics
+          </button>
+          <button
+            onClick={() => setActiveTab('voice')}
+            className={`px-8 py-2.5 rounded-xl text-sm font-bold transition-all flex items-center gap-2 ${activeTab === 'voice' ? 'bg-primary text-white shadow-lg shadow-primary/20' : 'text-muted-foreground hover:text-foreground'}`}
+          >
+            <Activity className="w-4 h-4" /> Voice Analytics
+          </button>
+        </div>
+      </motion.div>
 
-        {/* Vocal Emotion */}
-        <motion.div variants={item} initial="hidden" animate="show">
-          <Card className="h-full border-white/10 bg-white/5 dark:bg-black/20 backdrop-blur-2xl shadow-2xl rounded-[2rem] ring-1 ring-white/5">
-            <CardHeader>
-              <CardTitle className="font-heading font-bold text-xl">Vocal Intelligence</CardTitle>
-              <CardDescription className="font-medium">Voice emotion & tone history</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="h-[280px] relative">
-                {voiceLoading ? <Skeleton className="h-full w-full rounded-full" /> : voice && voice.length > 0 ? (
-                  <>
-                    <ResponsiveContainer width="100%" height="100%">
-                      <PieChart>
-                         <Pie data={voice} cx="50%" cy="50%" innerRadius={70} outerRadius={95} paddingAngle={8} dataKey="ratio" nameKey="emotion" animationBegin={400} animationDuration={1200}>
-                           {Array.isArray(voice) && voice.map((entry: any, index: number) => (
-                             <Cell key={`cell-${index}`} fill={[COLORS.accent, COLORS.primary, COLORS.secondary][index % 3]} className="stroke-background stroke-[4px]" />
-                           ))}
-                         </Pie>
-                        <Tooltip formatter={(val: number) => [`${Math.round(val * 100)}%`]} contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: 'var(--shadow-md)', fontWeight: 700 }} />
-                      </PieChart>
-                    </ResponsiveContainer>
-                    <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                       <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Dominant Tone</span>
-                       <span className="text-xl font-heading font-bold text-foreground capitalize">
-                         {Array.isArray(voice) && voice.length > 0 
-                           ? [...voice].sort((a: any, b: any) => b.ratio - a.ratio)[0]?.emotion
-                           : "---"}
-                       </span>
-                    </div>
-                  </>
-                ) : <div className="flex h-full items-center justify-center text-muted-foreground font-medium italic text-center px-8">No vocal data recorded.<br/>Ensure voice model is active during sessions.</div>}
-              </div>
-            </CardContent>
-          </Card>
-        </motion.div>
-      </div>
+      <AnimatePresence mode="wait">
+        {activeTab === 'face' && (
+          <motion.div
+            key="face"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            transition={{ duration: 0.2 }}
+            className="grid gap-6 lg:grid-cols-2"
+          >
+            {/* Posture Pie */}
+            <Card className="h-full border-white/10 bg-white/5 dark:bg-black/20 backdrop-blur-2xl shadow-2xl rounded-[2rem] ring-1 ring-white/5">
+              <CardHeader>
+                <CardTitle className="font-heading font-bold text-xl">Posture Balance</CardTitle>
+                <CardDescription className="font-medium">Distribution across sessions</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="h-[280px] relative">
+                  {postureLoading ? <Skeleton className="h-full w-full rounded-full" /> : posture && posture.length > 0 ? (
+                    <>
+                      <ResponsiveContainer width="100%" height="100%">
+                        <PieChart>
+                           <Pie data={posture} cx="50%" cy="50%" innerRadius={70} outerRadius={95} paddingAngle={8} dataKey="ratio" nameKey="posture" animationBegin={200} animationDuration={1200}>
+                             {Array.isArray(posture) && posture.map((entry: any, index: number) => (
+                               <Cell key={`cell-${index}`} fill={pieColors[index % pieColors.length]} className="stroke-background stroke-[4px]" />
+                             ))}
+                           </Pie>
+                          <Tooltip formatter={(val: number) => [`${Math.round(val * 100)}%`]} contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: 'var(--shadow-md)', fontWeight: 700 }} />
+                        </PieChart>
+                      </ResponsiveContainer>
+                      <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                         <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Dominant</span>
+                         <span className="text-xl font-heading font-bold text-foreground">
+                           {Array.isArray(posture) && posture.length > 0 
+                             ? [...posture].sort((a: any, b: any) => b.ratio - a.ratio)[0]?.posture.split('_')[0]
+                             : "---"}
+                         </span>
+                      </div>
+                    </>
+                  ) : <div className="flex h-full items-center justify-center text-muted-foreground font-medium italic">No data yet</div>}
+                </div>
+                <div className="mt-4 grid grid-cols-2 gap-2">
+                   {Array.isArray(posture) && posture.slice(0, 4).map((p: any, i: number) => (
+                     <div key={i} className="flex items-center gap-2">
+                        <div className="w-2 h-2 rounded-full" style={{ backgroundColor: pieColors[i] }} />
+                        <span className="text-[10px] font-bold text-muted-foreground uppercase truncate">{p.posture.replace('_', ' ')}</span>
+                     </div>
+                   ))}
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Visual Emotion */}
+            <Card className="h-full border-white/10 bg-white/5 dark:bg-black/20 backdrop-blur-2xl shadow-2xl rounded-[2rem] ring-1 ring-white/5">
+              <CardHeader>
+                <CardTitle className="font-heading font-bold text-xl">Facial Expressions</CardTitle>
+                <CardDescription className="font-medium">Visual emotion tracking</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="h-[280px] relative">
+                  {emotionLoading ? <Skeleton className="h-full w-full rounded-full" /> : emotion && emotion.length > 0 ? (
+                    <>
+                      <ResponsiveContainer width="100%" height="100%">
+                        <PieChart>
+                           <Pie data={emotion} cx="50%" cy="50%" innerRadius={70} outerRadius={95} paddingAngle={8} dataKey="ratio" nameKey="emotion" animationBegin={300} animationDuration={1200}>
+                             {Array.isArray(emotion) && emotion.map((entry: any, index: number) => (
+                               <Cell key={`cell-${index}`} fill={pieColors[index % pieColors.length]} className="stroke-background stroke-[4px]" />
+                             ))}
+                           </Pie>
+                          <Tooltip formatter={(val: number) => [`${Math.round(val * 100)}%`]} contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: 'var(--shadow-md)', fontWeight: 700 }} />
+                        </PieChart>
+                      </ResponsiveContainer>
+                      <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                         <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Dominant</span>
+                         <span className="text-xl font-heading font-bold text-foreground capitalize">
+                           {Array.isArray(emotion) && emotion.length > 0 
+                             ? [...emotion].sort((a: any, b: any) => b.ratio - a.ratio)[0]?.emotion
+                             : "---"}
+                         </span>
+                      </div>
+                    </>
+                  ) : <div className="flex h-full items-center justify-center text-muted-foreground font-medium italic">No visual data yet</div>}
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+        )}
+
+        {activeTab === 'voice' && (
+          <motion.div
+            key="voice"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            transition={{ duration: 0.2 }}
+            className="grid gap-6 lg:grid-cols-2"
+          >
+            {/* Vocal Emotion */}
+            <Card className="h-full border-white/10 bg-white/5 dark:bg-black/20 backdrop-blur-2xl shadow-2xl rounded-[2rem] ring-1 ring-white/5">
+              <CardHeader>
+                <CardTitle className="font-heading font-bold text-xl">Vocal Intelligence</CardTitle>
+                <CardDescription className="font-medium">Voice emotion & tone history</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="h-[280px] relative">
+                  {voiceLoading ? <Skeleton className="h-full w-full rounded-full" /> : voice && voice.length > 0 ? (
+                    <>
+                      <ResponsiveContainer width="100%" height="100%">
+                        <PieChart>
+                           <Pie data={voice} cx="50%" cy="50%" innerRadius={70} outerRadius={95} paddingAngle={8} dataKey="ratio" nameKey="emotion" animationBegin={400} animationDuration={1200}>
+                             {Array.isArray(voice) && voice.map((entry: any, index: number) => (
+                               <Cell key={`cell-${index}`} fill={[COLORS.accent, COLORS.primary, COLORS.secondary][index % 3]} className="stroke-background stroke-[4px]" />
+                             ))}
+                           </Pie>
+                          <Tooltip formatter={(val: number) => [`${Math.round(val * 100)}%`]} contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: 'var(--shadow-md)', fontWeight: 700 }} />
+                        </PieChart>
+                      </ResponsiveContainer>
+                      <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                         <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Dominant Tone</span>
+                         <span className="text-xl font-heading font-bold text-foreground capitalize">
+                           {Array.isArray(voice) && voice.length > 0 
+                             ? [...voice].sort((a: any, b: any) => b.ratio - a.ratio)[0]?.emotion
+                             : "---"}
+                         </span>
+                      </div>
+                    </>
+                  ) : <div className="flex h-full items-center justify-center text-muted-foreground font-medium italic text-center px-8">No vocal data recorded.<br/>Ensure voice model is active during sessions.</div>}
+                </div>
+              </CardContent>
+            </Card>
+            
+            {/* Empty placeholder for future voice metrics (like tension over time) */}
+            <div className="hidden lg:block border-2 border-dashed border-border/20 rounded-[2rem] bg-white/2 dark:bg-black/10 flex items-center justify-center opacity-50">
+               <p className="text-muted-foreground text-sm font-medium">Advanced vocal heuristics tracking coming soon</p>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* User Summary Table */}
       <motion.div variants={item} initial="hidden" animate="show">
