@@ -307,7 +307,7 @@ export default function LiveMirror() {
             const recorder = new MediaRecorder(stream);
             mediaRecorderRef.current = recorder;
             
-            voiceIntervalRef.current = setInterval(() => {
+            const recordChunk = () => {
               if (mediaRecorderRef.current && mediaRecorderRef.current.state === "inactive") {
                 audioChunksRef.current = [];
                 mediaRecorderRef.current.ondataavailable = (e) => {
@@ -322,8 +322,12 @@ export default function LiveMirror() {
                     if (res.ok) {
                       const data = await res.json();
                       setVoiceData(data.emotion, data.vocal_tension ?? 0);
+                    } else {
+                      console.error("[VOICE] AI service returned:", res.status);
                     }
-                  } catch (err) {}
+                  } catch (err) {
+                    console.error("[VOICE] AI fetch failed:", err);
+                  }
                 };
                 mediaRecorderRef.current.start();
                 setTimeout(() => {
@@ -332,7 +336,10 @@ export default function LiveMirror() {
                   }
                 }, 2000);
               }
-            }, 4000);
+            };
+
+            recordChunk(); // Trigger immediately
+            voiceIntervalRef.current = setInterval(recordChunk, 4000); // And then every 4s
           }).catch(e => console.warn("Mic access denied, no voice tracking this session."));
         },
         onError: (err) => {
