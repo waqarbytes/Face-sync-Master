@@ -20,6 +20,7 @@ export type FaceMetrics = {
   emotion: Emotion;
   emotionConfidence: number;
   wellnessScore: number;
+  center: { x: number; y: number };
 };
 
 type TrackerStatus = "idle" | "loading" | "ready" | "denied" | "error";
@@ -66,7 +67,7 @@ export function useFaceTracker(
       setStatus("loading");
       const landmarker = await getFaceLandmarker();
       if (!navigator.mediaDevices?.getUserMedia) {
-        setError("Camera access requires a secure context. Please open http://localhost:3000");
+        console.error("Camera access requires a secure context. Please open http://localhost:3000");
         setStatus("error");
         return;
       }
@@ -152,6 +153,10 @@ export function useFaceTracker(
                 emotion,
                 emotionConfidence: confidence,
                 wellnessScore,
+                center: landmarks.reduce((acc, pt) => ({
+                  x: acc.x + pt.x / landmarks.length,
+                  y: acc.y + pt.y / landmarks.length
+                }), { x: 0, y: 0 })
               });
 
               // Draw individual landmarks

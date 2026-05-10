@@ -92,6 +92,8 @@ export interface Reading {
   posture: PostureState;
   emotion: Emotion;
   emotionConfidence: number;
+  voiceEmotion?: string | null;
+  vocalTension?: number | null;
   wellnessScore: number;
 }
 
@@ -105,6 +107,8 @@ export interface NewReading {
   posture: PostureState;
   emotion: Emotion;
   emotionConfidence: number;
+  voiceEmotion?: string | null;
+  vocalTension?: number | null;
   wellnessScore: number;
 }
 

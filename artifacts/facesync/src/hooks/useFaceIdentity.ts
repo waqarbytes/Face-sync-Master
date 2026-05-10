@@ -14,6 +14,7 @@ export interface IdentityState {
   identities: {
     match: MatchResult | null;
     descriptor: number[] | null;
+    box: { x: number; y: number; width: number; height: number } | null;
   }[];
   hasProfiles: boolean;
 }
@@ -54,12 +55,27 @@ export function useFaceIdentity(
         const results = await computeAllDescriptors(video);
         if (cancelled) return;
         
-        const newIdentities = results.map(r => ({
+        // 1. Initial matching
+        const initialMatches = results.map(r => ({
           descriptor: Array.from(r.descriptor),
+          box: r.box,
           match: bestMatch(r.descriptor, list)
         }));
         
-        setIdentities(newIdentities);
+        // 2. De-duplicate identities: Ensure each profile is only assigned to its BEST face match
+        const usedProfileIds = new Set<number>();
+        const finalIdentities = initialMatches
+          .sort((a, b) => (a.match?.distance ?? 1) - (b.match?.distance ?? 1))
+          .map(id => {
+             if (id.match && !usedProfileIds.has(id.match.profile.id)) {
+                usedProfileIds.add(id.match.profile.id);
+                return id;
+             }
+             // If this profile was already taken by a better match, this face is "Unknown"
+             return { ...id, match: null };
+          });
+        
+        setIdentities(finalIdentities);
       } catch {
         // ignore transient inference errors
       }

@@ -87,7 +87,7 @@ export interface MatchResult {
 export function bestMatch(
   descriptor: ArrayLike<number>,
   profiles: RecognizableProfile[],
-  threshold = 0.55,
+  threshold = 0.62,
 ): MatchResult | null {
   let best: MatchResult | null = null;
   for (const p of profiles) {

@@ -17,6 +17,8 @@ export const readingsTable = pgTable(
     posture: text("posture").notNull(),
     emotion: text("emotion").notNull(),
     emotionConfidence: real("emotion_confidence").notNull(),
+    voiceEmotion: text("voice_emotion"),
+    vocalTension: real("vocal_tension"),
     wellnessScore: real("wellness_score").notNull(),
   },
   (t) => ({

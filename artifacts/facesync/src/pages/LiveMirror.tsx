@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useLocation } from "wouter";
 import { useFaceTracker } from "@/hooks/useFaceTracker";
 import { useReadingBatcher } from "@/hooks/useReadingBatcher";
+import { getVoiceData } from "@/stores/voiceStore";
 import {
   useGetBaseline,
   useCreateSession,
@@ -56,8 +57,43 @@ export default function LiveMirror() {
   const [sparkline, setSparkline] = useState<number[]>([]);
   const [learningProfiles, setLearningProfiles] = useState<Record<number, boolean>>({});
 
-  // Identity logic
-  const identifiedProfileId = identity.identities[0]?.match?.profile.id;
+  // Identity logic - Spatial Matching
+  const getIdentityForFace = (faceCenter: { x: number, y: number }): typeof identity.identities[0] | null => {
+    // video size used for landmarker was roughly 720x540, but normalized is easier
+    // face-api boxes are in pixels. We need to normalize them to compare with landmarks.
+    const video = videoRef.current;
+    if (!video) return null;
+    
+    const vWidth = video.videoWidth || 1;
+    const vHeight = video.videoHeight || 1;
+
+    let bestIdMatch: typeof identity.identities[0] | null = null;
+    let minDistance = 0.3; // max threshold for spatial distance (normalized)
+
+    identity.identities.forEach(id => {
+      if (!id.box) return;
+      
+      // Calculate normalized center of face-api box
+      const idCenterX = (id.box.x + id.box.width / 2) / vWidth;
+      const idCenterY = (id.box.y + id.box.height / 2) / vHeight;
+      
+      const dist = Math.sqrt(
+        Math.pow(idCenterX - faceCenter.x, 2) + 
+        Math.pow(idCenterY - faceCenter.y, 2)
+      );
+      
+      if (dist < minDistance) {
+        minDistance = dist;
+        bestIdMatch = id;
+      }
+    });
+    
+    return bestIdMatch;
+  };
+
+  // Primary user identity (first face detected)
+  const primaryIdentity = allMetrics[0] ? getIdentityForFace(allMetrics[0].center) : null;
+  const identifiedProfileId = (primaryIdentity as any)?.match?.profile.id;
   const currentProfileId = manualProfileId || identifiedProfileId;
   const currentProfileName = profiles?.find(p => p.id === currentProfileId)?.name || "Unknown";
 
@@ -128,6 +164,7 @@ export default function LiveMirror() {
       const perfNow = performance.now();
       if (perfNow - lastSyncTime.current >= 2000) {
         lastSyncTime.current = perfNow;
+        const voice = getVoiceData();
         push({
           ear: primary.ear,
           mar: primary.mar,
@@ -137,6 +174,8 @@ export default function LiveMirror() {
           posture: primary.posture,
           emotion: primary.emotion,
           emotionConfidence: primary.emotionConfidence,
+          voiceEmotion: voice.voiceEmotion,
+          vocalTension: voice.vocalTension,
           wellnessScore: primary.wellnessScore,
         });
         setSparkline((prev) => [...prev.slice(-14), primary.wellnessScore]);
@@ -157,10 +196,11 @@ export default function LiveMirror() {
   // Multi-user Continuous Learning
   const lastLearningTimes = useRef<Record<number, number>>({});
   useEffect(() => {
-    identity.identities.forEach((idState) => {
-      if (idState.match && idState.descriptor && idState.match.distance < 0.4) {
+    allMetrics.forEach((m, idx) => {
+      const matchState = getIdentityForFace(m.center);
+      if (matchState?.match && matchState.descriptor && matchState.match.distance < 0.4) {
         const now = performance.now();
-        const profileId = idState.match.profile.id;
+        const profileId = matchState.match.profile.id;
         const lastSync = lastLearningTimes.current[profileId] || 0;
         if (now - lastSync > 15000) {
           lastLearningTimes.current[profileId] = now;
@@ -168,7 +208,7 @@ export default function LiveMirror() {
           fetch(`/api/profiles/${profileId}/refine`, {
              method: 'POST',
              headers: { 'Content-Type': 'application/json' },
-             body: JSON.stringify({ descriptor: idState.descriptor })
+             body: JSON.stringify({ descriptor: matchState.descriptor })
           }).then(() => {
             setTimeout(() => {
               setLearningProfiles(prev => ({ ...prev, [profileId]: false }));
@@ -178,24 +218,25 @@ export default function LiveMirror() {
             setLearningProfiles(prev => ({ ...prev, [profileId]: false }));
           });
         }
-        if (idState.match.profile.earOpen && !activeBaseline?.isPersonalized) {
+        const profileData = matchState.match.profile as any;
+        if (profileData.earOpen && !activeBaseline?.isPersonalized) {
           setActiveBaseline({
-            ...idState.match.profile,
+            ...matchState.match.profile,
             isPersonalized: true
           });
         }
       }
     });
-  }, [identity.identities, activeBaseline]);
+  }, [allMetrics, identity.identities, activeBaseline]);
 
   // Dynamic Identity Locking
   const isProfileLocked = useRef(false);
   const lastSyncId = useRef<number | null>(null);
-  const currentIdentifiedId = identity.identities[0]?.match?.profile.id;
+  const currentIdentifiedId = identifiedProfileId;
 
   useEffect(() => {
     if (activeSessionId && !isProfileLocked.current) {
-      const match = identity.identities[0]?.match;
+      const match = (primaryIdentity as any)?.match;
       if (match) { 
         console.log(`[MIRROR_SYNC] Attempting to lock session ${activeSessionId} to ${match.profile.name} (id: ${match.profile.id})`);
         
@@ -414,7 +455,7 @@ export default function LiveMirror() {
                         <div className="flex items-center gap-2 sm:gap-3">
                            <div className={`w-7 h-7 sm:w-10 sm:h-10 rounded-xl sm:rounded-2xl bg-gradient-to-br ${i === 0 ? 'from-primary to-primary/50' : 'from-blue-500 to-blue-300'} flex items-center justify-center shadow-lg shadow-black/20 relative`}>
                              <UserCircle2 className="h-4 w-4 sm:h-6 sm:w-6 text-white" />
-                             {(learningProfiles[identity.identities[i]?.match?.profile.id || -1] || (i === 0 && isProfileLocked.current)) && (
+                             {(learningProfiles[getIdentityForFace(m.center)?.match?.profile.id || -1] || (i === 0 && isProfileLocked.current)) && (
                                <motion.div 
                                  initial={{ scale: 0 }}
                                  animate={{ scale: 1 }}
@@ -432,7 +473,7 @@ export default function LiveMirror() {
                                )}
                              </div>
                               <div className="text-[10px] sm:text-sm font-bold tracking-tight flex items-center gap-1 sm:gap-2">
-                                {identity.identities[i]?.match?.profile.name || (
+                                {getIdentityForFace(m.center)?.match?.profile.name || (
                                   <>
                                     <span className="text-white/40 italic text-[9px] sm:text-sm">Unknown</span>
                                     <Button 

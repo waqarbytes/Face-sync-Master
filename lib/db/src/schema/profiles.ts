@@ -5,6 +5,7 @@ export const profilesTable = pgTable("profiles", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),
   descriptor: jsonb("descriptor").notNull().$type<number[]>(),
+  voiceDescriptor: jsonb("voice_descriptor").$type<number[]>(),
   sampleCount: integer("sample_count").notNull().default(1),
   
   createdAt: timestamp("created_at")

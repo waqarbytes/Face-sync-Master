@@ -108,17 +108,17 @@ router.get("/insights/posture-breakdown", async (req, res) => {
   try {
     const profileId = req.query.profileId ? parseInt(req.query.profileId as string) : null;
     
-    let query = db
+    const query = db
       .select({
         posture: readingsTable.posture,
         count: sql<number>`COUNT(*)`,
       })
-      .from(readingsTable);
+      .from(readingsTable)
+      .$dynamic();
 
     if (profileId) {
-      // @ts-ignore - join requires proper typing but works in runtime
-      query = query.innerJoin(sessionsTable, eq(readingsTable.sessionId, sessionsTable.id))
-                   .where(eq(sessionsTable.profileId, profileId));
+      query.innerJoin(sessionsTable, eq(readingsTable.sessionId, sessionsTable.id));
+      query.where(eq(sessionsTable.profileId, profileId));
     }
 
     const rows = await query.groupBy(readingsTable.posture);
@@ -141,21 +141,22 @@ router.get("/insights/emotion-breakdown", async (req, res) => {
   try {
     const profileId = req.query.profileId ? parseInt(req.query.profileId as string) : null;
 
-    let query = db
+    const baseQuery = db
       .select({
         emotion: readingsTable.emotion,
         count: sql<number>`COUNT(*)`,
       })
       .from(readingsTable)
-      .where(isNotNull(readingsTable.emotion));
+      .$dynamic();
 
     if (profileId) {
-      // @ts-ignore
-      query = query.innerJoin(sessionsTable, eq(readingsTable.sessionId, sessionsTable.id))
-                   .where(and(isNotNull(readingsTable.emotion), eq(sessionsTable.profileId, profileId)));
+      baseQuery.innerJoin(sessionsTable, eq(readingsTable.sessionId, sessionsTable.id));
+      baseQuery.where(and(isNotNull(readingsTable.emotion), eq(sessionsTable.profileId, profileId)));
+    } else {
+      baseQuery.where(isNotNull(readingsTable.emotion));
     }
 
-    const rows = await query.groupBy(readingsTable.emotion);
+    const rows = await baseQuery.groupBy(readingsTable.emotion);
 
     const total = rows.reduce((s, r) => s + r.count, 0) || 1;
     res.json(
@@ -168,6 +169,43 @@ router.get("/insights/emotion-breakdown", async (req, res) => {
   } catch (error) {
     console.error("Emotion error:", error);
     res.status(500).json({ error: "Failed to load emotion analysis" });
+  }
+});
+
+router.get("/insights/voice-breakdown", async (req, res) => {
+  try {
+    const profileId = req.query.profileId ? parseInt(req.query.profileId as string) : null;
+
+    const baseQuery = db
+      .select({
+        emotion: readingsTable.voiceEmotion,
+        count: sql<number>`COUNT(*)`,
+        avgTension: sql<number>`AVG(${readingsTable.vocalTension})`,
+      })
+      .from(readingsTable)
+      .$dynamic();
+
+    if (profileId) {
+      baseQuery.innerJoin(sessionsTable, eq(readingsTable.sessionId, sessionsTable.id));
+      baseQuery.where(and(isNotNull(readingsTable.voiceEmotion), eq(sessionsTable.profileId, profileId)));
+    } else {
+      baseQuery.where(isNotNull(readingsTable.voiceEmotion));
+    }
+
+    const rows = await baseQuery.groupBy(readingsTable.voiceEmotion);
+
+    const total = rows.reduce((s, r) => s + r.count, 0) || 1;
+    res.json(
+      rows.map((r) => ({
+        emotion: r.emotion,
+        count: r.count,
+        ratio: r.count / total,
+        avgTension: r.avgTension,
+      })),
+    );
+  } catch (error) {
+    console.error("Voice breakdown error:", error);
+    res.status(500).json({ error: "Failed to load voice analysis" });
   }
 });
 

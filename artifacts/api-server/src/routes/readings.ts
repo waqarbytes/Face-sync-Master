@@ -46,6 +46,8 @@ router.post("/sessions/:id/readings", async (req, res) => {
       posture: r.posture,
       emotion: r.emotion,
       emotionConfidence: r.emotionConfidence,
+      voiceEmotion: r.voiceEmotion ?? null,
+      vocalTension: r.vocalTension ?? null,
       wellnessScore: r.wellnessScore,
     }));
 

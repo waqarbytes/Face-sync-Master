@@ -213,6 +213,8 @@ export const ListReadingsResponseItem = zod.object({
     "unknown",
   ]),
   emotionConfidence: zod.number(),
+  voiceEmotion: zod.string().nullish(),
+  vocalTension: zod.number().nullish(),
   wellnessScore: zod.number(),
 });
 export const ListReadingsResponse = zod.array(ListReadingsResponseItem);
@@ -250,6 +252,8 @@ export const AppendReadingsBody = zod.object({
         "unknown",
       ]),
       emotionConfidence: zod.number(),
+      voiceEmotion: zod.string().nullish(),
+      vocalTension: zod.number().nullish(),
       wellnessScore: zod.number(),
     }),
   ),

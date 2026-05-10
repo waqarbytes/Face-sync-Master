@@ -147,6 +147,32 @@ router.post("/profiles/:id/refine", async (req, res) => {
   }
 });
 
+router.patch("/profiles/:id/voice-sync", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { voiceDescriptor } = req.body;
+
+    if (!voiceDescriptor || !Array.isArray(voiceDescriptor)) {
+      return res.status(400).json({ error: "Voice descriptor is required" });
+    }
+
+    const [updated] = await db
+      .update(profilesTable)
+      .set({ voiceDescriptor })
+      .where(eq(profilesTable.id, parseInt(id)))
+      .returning();
+
+    if (!updated) {
+      return res.status(404).json({ error: "Profile not found" });
+    }
+
+    res.json(updated);
+  } catch (error: any) {
+    console.error("Voice Sync Error:", error.message);
+    res.status(500).json({ error: "Failed to sync voice profile" });
+  }
+});
+
 router.delete("/profiles/:id", async (req, res) => {
   const { id } = DeleteProfileParams.parse(req.params);
   await db.delete(profilesTable).where(eq(profilesTable.id, id));

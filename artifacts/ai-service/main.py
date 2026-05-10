@@ -7,7 +7,7 @@ from fastapi import FastAPI, File, UploadFile, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import List
-import cv2
+from PIL import Image
 from deepface import DeepFace
 import tensorflow as tf
 
@@ -41,10 +41,10 @@ async def load_models():
 async def enroll_face(file: UploadFile = File(...)):
     try:
         contents = await file.read()
-        nparr = np.frombuffer(contents, np.uint8)
-        img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
-        if img is None: raise HTTPException(status_code=400, detail="Invalid image")
-        results = DeepFace.represent(img_path=img, model_name="Facenet", enforce_detection=True)
+        img = Image.open(io.BytesIO(contents)).convert("RGB")
+        img_np = np.array(img)
+        # DeepFace expects BGR for certain models, or we can pass the numpy array directly
+        results = DeepFace.represent(img_path=img_np, model_name="Facenet", enforce_detection=True)
         if not results: raise HTTPException(status_code=404, detail="No face detected")
         return {"descriptor": results[0]["embedding"], "model": "Facenet"}
     except Exception as e:
@@ -54,20 +54,21 @@ async def enroll_face(file: UploadFile = File(...)):
 async def analyze_face(file: UploadFile = File(...)):
     try:
         contents = await file.read()
-        nparr = np.frombuffer(contents, np.uint8)
-        img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
-        if img is None: raise HTTPException(status_code=400, detail="Invalid image")
-
+        img = Image.open(io.BytesIO(contents))
+        
         if custom_emotion_model:
-            gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-            face_img = cv2.resize(gray, (48, 48))
-            face_img = face_img.astype('float32') / 255.0
-            face_img = np.expand_dims(np.expand_dims(face_img, axis=0), axis=-1)
-            preds = custom_emotion_model.predict(face_img)
+            # Replicating the 48x48 grayscale preprocessing without OpenCV
+            gray_img = img.convert("L").resize((48, 48))
+            face_np = np.array(gray_img).astype('float32') / 255.0
+            face_np = np.expand_dims(np.expand_dims(face_np, axis=0), axis=-1)
+            
+            preds = custom_emotion_model.predict(face_np)
             idx = np.argmax(preds[0])
             return {"emotion": EMOTIONS[idx], "confidence": float(preds[0][idx]), "source": "custom"}
         
-        results = DeepFace.analyze(img_path=img, actions=['emotion'], enforce_detection=False)
+        img_rgb = img.convert("RGB")
+        img_np = np.array(img_rgb)
+        results = DeepFace.analyze(img_path=img_np, actions=['emotion'], enforce_detection=False)
         return {"emotion": results[0]["dominant_emotion"], "confidence": results[0]["emotion"][results[0]["dominant_emotion"]] / 100, "source": "deepface"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -93,38 +94,72 @@ async def enroll_voice(file: UploadFile = File(...)):
 @app.post("/voice/analyze")
 async def analyze_voice(file: UploadFile = File(...)):
     """
-    Detects emotion and vocal energy from audio.
+    Advanced Vocal Intelligence: Detects emotional state via acoustic heuristics.
+    Accepts any audio format (WebM, WAV, etc.) and converts to WAV for Librosa.
     """
     try:
+        import subprocess, tempfile
         contents = await file.read()
-        y, sr = librosa.load(io.BytesIO(contents))
         
-        # 1. Pitch Analysis
+        # Convert any audio format to WAV using ffmpeg
+        with tempfile.NamedTemporaryFile(suffix=".webm", delete=False) as tmp_in:
+            tmp_in.write(contents)
+            tmp_in_path = tmp_in.name
+        
+        tmp_out_path = tmp_in_path.replace(".webm", ".wav")
+        
+        try:
+            subprocess.run(
+                ["ffmpeg", "-y", "-i", tmp_in_path, "-ar", "22050", "-ac", "1", tmp_out_path],
+                capture_output=True, timeout=10
+            )
+            y, sr = librosa.load(tmp_out_path, sr=22050)
+        except Exception:
+            # Fallback: try loading directly (works for WAV/MP3)
+            y, sr = librosa.load(io.BytesIO(contents))
+        finally:
+            # Cleanup temp files
+            for p in [tmp_in_path, tmp_out_path]:
+                try: os.remove(p)
+                except: pass
+        
+        # 1. Pitch Analysis (Fundamental Frequency)
         pitches, magnitudes = librosa.piptrack(y=y, sr=sr)
         pitch = np.mean(pitches[pitches > 0]) if np.any(pitches > 0) else 0
         
-        # 2. Energy Analysis (RMS)
+        # 2. Energy & RMS (Volume/Intensity)
         rms = librosa.feature.rms(y=y)
         energy = float(np.mean(rms))
         
-        # 3. Simple Emotion Heuristic
+        # 3. Spectral Centroid (Brightness/Tension)
+        centroid = np.mean(librosa.feature.spectral_centroid(y=y, sr=sr))
+        
+        # 4. Emotion Logic (Acoustic Heuristic)
         emotion = "neutral"
         confidence = 0.5
         
-        if energy > 0.05:
-            if pitch > 200: emotion = "happy"
-            elif pitch < 120: emotion = "sad"
-            else: emotion = "focused"
-            confidence = 0.8
-        else:
+        if energy < 0.005:
             emotion = "quiet"
             confidence = 0.9
+        elif energy > 0.08 and centroid > 2500:
+            emotion = "stressed" # High energy + bright/sharp spectrum = tension
+            confidence = 0.85
+        elif energy > 0.06 and pitch > 180:
+            emotion = "excited" # High energy + high pitch
+            confidence = 0.8
+        elif energy < 0.02 and pitch < 130:
+            emotion = "fatigued" # Low energy + low pitch (monotone)
+            confidence = 0.75
+        elif centroid < 1500:
+            emotion = "calm" # Low spectral brightness
+            confidence = 0.8
 
         return {
             "emotion": emotion,
             "confidence": confidence,
             "energy": energy,
-            "pitch": float(pitch)
+            "pitch": float(pitch),
+            "vocal_tension": float(centroid / 5000) # Normalized tension score
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Voice analysis failed: {e}")
