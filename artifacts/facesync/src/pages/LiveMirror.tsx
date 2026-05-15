@@ -154,14 +154,14 @@ export default function LiveMirror() {
       }
 
       // 2. TRIGGERING (With Cooldown)
-      if (now - lastInterventionTime.current > 45000) {
+      if (now - lastInterventionTime.current > 15000) {
         if (badPostureStart.current && (now - badPostureStart.current > 8000)) {
           showIntervention("Your posture is dipping. A quick stretch might help!");
           lastInterventionTime.current = now;
           badPostureStart.current = 0;
         } 
-        else if (eyeFatigueStart.current && (now - eyeFatigueStart.current > 12000)) {
-          showIntervention("Eye strain detected. Try blinking or looking away for a moment.");
+        else if (eyeFatigueStart.current && (now - eyeFatigueStart.current > 4000)) {
+          showIntervention("Fatigue Detected! Your eyes are showing heavy strain. Take a short break.");
           lastInterventionTime.current = now;
           eyeFatigueStart.current = 0;
         }
